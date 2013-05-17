@@ -1,6 +1,7 @@
 void ProcessChannels(){
-    MapVar(&rcCommands.values.aileron,&rollSetPoint,1000,2000,-45,45);
-    MapVar(&rcCommands.values.elevator,&pitchSetPoint,1000,2000,-45,45);
+  if (rcCommands.values.gear > 1500){
+    MapVar(&rcCommands.values.aileron,&rollSetPoint,1000,2000,-60,60);
+    MapVar(&rcCommands.values.elevator,&pitchSetPoint,1000,2000,-60,60);
     MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
     if (rollSetPoint < 2 && rollSetPoint > -2){
       rollSetPoint = 0;
@@ -8,9 +9,34 @@ void ProcessChannels(){
     if (pitchSetPoint < 2 && pitchSetPoint > -2){
       pitchSetPoint = 0;
     }
-    if (rateSetPointZ < 2 && rateSetPointZ > -2){
-      rateSetPointZ = 0;
+  }
+  else{
+    MapVar(&rcCommands.values.aileron,&rateSetPointX,1000,2000,-300,300);
+    MapVar(&rcCommands.values.elevator,&rateSetPointY,1000,2000,-300,300);
+    MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
+    if (rcCommands.values.aileron > 1900){
+      rateSetPointX = 800.0;
     }
+    if (rcCommands.values.aileron < 1100){
+      rateSetPointX = -800.0;
+    }
+    if (rcCommands.values.elevator > 1900){
+      rateSetPointY = 800.0;
+    }
+    if (rcCommands.values.elevator < 1100){
+      rateSetPointY = -800.0;
+    }
+    if (rateSetPointY < 2 && rateSetPointY > -2){
+      rateSetPointY= 0; 
+    }  
+    if (rateSetPointX < 2 && rateSetPointX > -2){
+      rateSetPointX = 0; 
+    }      
+  }
+
+  if (rateSetPointZ < 2 && rateSetPointZ > -2){
+    rateSetPointZ = 0;
+  }
 
   if (rcCommands.values.throttle > LIFTOFF){
     integrate = true;
@@ -315,6 +341,9 @@ void Spektrum(){
 
   }
 }
+
+
+
 
 
 

@@ -114,6 +114,10 @@
 #define PI_FLOAT     3.14159265f
 #define PIBY2_FLOAT  1.5707963f
 
+#define DebugOutput() DDRF |= 1<<4
+#define DebugHigh() PORTF |= 1<<4
+#define DebugLow() PORTF &= ~(1<<4)
+
 typedef union{
   struct{
     int16_t x;
@@ -225,10 +229,6 @@ float ki_a_r = 0.2005;
 float kd_a_r = 0.11256;
 float nRollA = 47.9596;
 
-float kp_a_y = 3.0564;
-float ki_a_y = 0.099342;
-float kd_a_y = 0.51023;
-float nYawA = 36.9853;
 
 
 
@@ -259,7 +259,7 @@ void setup(){
   pinMode(GREEN,OUTPUT);
   digitalWrite(YELLOW,HIGH);
   digitalWrite(RED,HIGH);
-
+  Serial.begin(115200);
   MotorInit();
   DetectRC();
   if (rcType == RC){
@@ -331,7 +331,7 @@ void setup(){
   }
   digitalWrite(YELLOW,LOW);
   digitalWrite(GREEN,HIGH);
-
+  DebugOutput();
   loopCount = 0;
   printTimer = millis();
   failSafeTimer = millis();
@@ -340,14 +340,16 @@ void setup(){
 
 void loop(){
 
-  if (micros() - timer >= 5000){//attempt to run at 200 hz  
+  if (micros() - timer > 2631){//~380 hz  
     dt = ((micros() - timer) / 1000000.0);
     timer = micros();
     GetGyro();
     GetAcc();
     imu.IMUupdate();
     imu.GetEuler();
-    Angle();
+    if (rcCommands.values.gear > 1500){
+      Angle();
+    }
     Rate();
     MotorHandler();
   }
@@ -359,36 +361,6 @@ void loop(){
     newRC = false;
     failSafeTimer = millis();
     ProcessChannels();
-    //imu.GetEuler();
-    //for debugging purposes
-    //if (rcCommands.values.gear > 1600){
-    /*Serial1.print(millis());
-     Serial1.print(",");
-     Serial1.print(imu.pitch);
-     Serial1.print(",");
-     Serial1.println(imu.roll);/*
-     
-     Serial.print(",");
-     Serial.print(imu.yaw);
-     Serial.print(",");
-     Serial.println(imu.altitude);
-     }*/
-    /* Serial.print(",");*/
-    /*Serial.print(rcCommands.values.aileron);
-     Serial.print(",");
-     Serial.print(rcCommands.values.elevator);
-     Serial.print(",");
-     Serial.print(rcCommands.values.throttle);
-     Serial.print(",");
-     Serial.print(rcCommands.values.rudder);
-     Serial.print(",");
-     Serial.print(rcCommands.values.gear);
-     Serial.print(",");
-     Serial.print(rcCommands.values.aux1);
-     Serial.print(",");
-     Serial.print(rcCommands.values.aux2);
-     Serial.print(",");
-     Serial.println(rcCommands.values.aux3); */
   }  
   if (millis() - failSafeTimer > 1000){
     failSafe = true;
@@ -400,7 +372,6 @@ void loop(){
     Motor4WriteMicros(1000);
     digitalWrite(GREEN,LOW);
     while(1){
-
       digitalWrite(RED,HIGH);
       delay(500);
       digitalWrite(RED,LOW);
@@ -410,7 +381,7 @@ void loop(){
 }
 
 void Smoothing(int16_t *raw, float *smooth){
-  *smooth = (*raw * (0.08)) + (*smooth * 0.92);
+  *smooth = (*raw * (0.10)) + (*smooth * 0.90);
 }
 void MapVar (float *x, float *y, float in_min, float in_max, float out_min, float out_max){
   *y = (*x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

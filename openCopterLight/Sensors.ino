@@ -24,7 +24,7 @@ void AccInit(){
   delay(10);
   I2c.write(ADXL435_ADDR,FIFO_CTL,0x00);  
   delay(10);
-  for (int i = 0; i<50; i++){
+  for (int i = 0; i<500; i++){
     GetAcc();
     delay(3);
   }
@@ -40,7 +40,7 @@ void GyroInit(){
   delay(10);
   I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG5,0x02);
   delay(10);
-  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0xCF);
+  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0x8F);
   delay(10);
   //this section takes an average of 500 samples to calculate the offset
   //if this step is skipped the IMU will still work, but this simple step gives better results
@@ -50,20 +50,20 @@ void GyroInit(){
   gyroSumX = 0;
   gyroSumY = 0;
   gyroSumZ = 0;
-  for (j = 0; j < 50; j ++){//give the internal LPF time to warm up
+  for (j = 0; j < 250; j ++){//give the internal LPF time to warm up
     GetGyro();
     delay(3);
   }
-  for (j = 0; j < 100; j ++){//give the internal LPF time to warm up
+  for (j = 0; j < 250; j ++){//give the internal LPF time to warm up
     GetGyro();
     gyroSumX += gyro.v.x;
     gyroSumY += gyro.v.y;
     gyroSumZ += gyro.v.z;
     delay(3);
   }
-  offsetX = gyroSumX / 100.0;
-  offsetY = gyroSumY / 100.0;
-  offsetZ = gyroSumZ / 100.0;
+  offsetX = gyroSumX / 250.0;
+  offsetY = gyroSumY / 250.0;
+  offsetZ = gyroSumZ / 250.0;
 
 }
 
@@ -97,7 +97,7 @@ void GetAcc(){
   accToFilterX = -1.0 * smoothAccX;//if the value from the smoothing filter is sent it will not work when the algorithm normalizes the vector
   accToFilterY = smoothAccY;
   accToFilterZ = smoothAccZ;
-  
+  //Serial<<smoothAccX<<","<<smoothAccY<<","<<smoothAccZ<<","<<accToFilterX<<","<<accToFilterY<<","<<accToFilterZ<<"\r\n";
   
   /*accToFilterX = -1.0 * acc.v.x;
   accToFilterY = acc.v.y;

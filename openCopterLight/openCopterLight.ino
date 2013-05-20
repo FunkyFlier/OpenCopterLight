@@ -25,7 +25,6 @@
  To use on a different arduino change the slave select defines or use digitalWrite 
  */
 #include <I2C.h>
-#include <SPI.h>
 #include "openIMUL.h"
 #include "MPIDL.h"//the L is for local in case there is already a library by that name
 
@@ -55,19 +54,6 @@
 #define L3G_OUT_Y_H       0x2B
 #define L3G_OUT_Z_L       0x2C
 #define L3G_OUT_Z_H       0x2D
-
-#define L3G_FIFO_CTRL_REG 0x2E
-#define L3G_FIFO_SRC_REG  0x2F
-
-#define L3G_INT1_CFG      0x30
-#define L3G_INT1_SRC      0x31
-#define L3G_INT1_THS_XH   0x32
-#define L3G_INT1_THS_XL   0x33
-#define L3G_INT1_THS_YH   0x34
-#define L3G_INT1_THS_YL   0x35
-#define L3G_INT1_THS_ZH   0x36
-#define L3G_INT1_THS_ZL   0x37
-#define L3G_INT1_DURATION 0x38
 
 //acc defines - Analog Devices ADXL345
 #define ADXL435_ADDR 0x53
@@ -204,13 +190,13 @@ float adjustmentY;
 float adjustmentZ; 
 
 
-float kp_r_p = 0.64409;
-float ki_r_p = 0.041982;
+float kp_r_p = 0.85;
+float ki_r_p = 0.1;
 float kd_r_p = 0.01423;
 float nPitch = 19.5924;
 
-float kp_r_r = 0.64409;
-float ki_r_r = 0.041982;
+float kp_r_r = 0.85;
+float ki_r_r = 0.1;
 float kd_r_r = 0.01423;
 float nRoll = 19.5924;
 
@@ -249,6 +235,7 @@ MPID RollRate(&rateSetPointX,&degreeGyroX,&adjustmentX,&integrate,&kp_r_r,&ki_r_
 MPID YawRate(&rateSetPointZ,&degreeGyroZ,&adjustmentZ,&integrate,&kp_r_y,&ki_r_y,&kd_r_y,&nYaw,&dt,500,500);
 
 boolean failSafe = false;
+boolean toggle;
 
 long failSafeTimer;
 
@@ -319,15 +306,17 @@ void setup(){
   PitchRate.reset();
   RollRate.reset();
   YawRate.reset();
-
+  printTimer = millis();
   while (rcCommands.values.throttle > 1020){
     if (rcType != RC){
       FeedLine();
     }
-    digitalWrite(GREEN,HIGH);
-    delay(500);
-    digitalWrite(GREEN,LOW);
-    delay(500);
+    if (millis() - printTimer > 500){
+      digitalWrite(GREEN,toggle);
+      toggle = ~toggle;
+      printTimer = millis();
+    }
+
   }
   digitalWrite(YELLOW,LOW);
   digitalWrite(GREEN,HIGH);

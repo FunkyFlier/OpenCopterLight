@@ -14,16 +14,16 @@ void ProcessChannels(){
     MapVar(&rcCommands.values.aileron,&rateSetPointX,1000,2000,-300,300);
     MapVar(&rcCommands.values.elevator,&rateSetPointY,1000,2000,-300,300);
     MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
-    if (rcCommands.values.aileron > 1900){
+    if (rcCommands.values.aileron > 1950){
       rateSetPointX = 800.0;
     }
-    if (rcCommands.values.aileron < 1100){
+    if (rcCommands.values.aileron < 1050){
       rateSetPointX = -800.0;
     }
-    if (rcCommands.values.elevator > 1900){
+    if (rcCommands.values.elevator > 1950){
       rateSetPointY = 800.0;
     }
-    if (rcCommands.values.elevator < 1100){
+    if (rcCommands.values.elevator < 1050){
       rateSetPointY = -800.0;
     }
     if (rateSetPointY < 2 && rateSetPointY > -2){

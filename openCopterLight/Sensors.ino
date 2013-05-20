@@ -97,11 +97,7 @@ void GetAcc(){
   accToFilterX = -1.0 * smoothAccX;//if the value from the smoothing filter is sent it will not work when the algorithm normalizes the vector
   accToFilterY = smoothAccY;
   accToFilterZ = smoothAccZ;
-  //Serial<<smoothAccX<<","<<smoothAccY<<","<<smoothAccZ<<","<<accToFilterX<<","<<accToFilterY<<","<<accToFilterZ<<"\r\n";
-  
-  /*accToFilterX = -1.0 * acc.v.x;
-  accToFilterY = acc.v.y;
-  accToFilterZ = acc.v.z;*/
+
 
 }
 

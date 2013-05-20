@@ -190,13 +190,13 @@ float adjustmentY;
 float adjustmentZ; 
 
 
-float kp_r_p = 0.85;
-float ki_r_p = 0.1;
+float kp_r_p = 0.65;
+float ki_r_p = 0.05;
 float kd_r_p = 0.01423;
 float nPitch = 19.5924;
 
-float kp_r_r = 0.85;
-float ki_r_r = 0.1;
+float kp_r_r = 0.65;
+float ki_r_r = 0.05;
 float kd_r_r = 0.01423;
 float nRoll = 19.5924;
 
@@ -246,14 +246,15 @@ void setup(){
   pinMode(GREEN,OUTPUT);
   digitalWrite(YELLOW,HIGH);
   digitalWrite(RED,HIGH);
-  Serial.begin(115200);
+
   MotorInit();
   DetectRC();
   if (rcType == RC){
     DDRB &= 0xE0;
-    PORTB |= 0x1F;//turn on pull ups
-    PCMSK0 |= 0x1F;//set interrupt mask for all of PORTK
-    PCICR |= 1<<0;//enable the pin change interrupt for K
+    PORTB |= 0x1F;
+    PCMSK0 |= 0x1F;
+    PCICR |= 1<<0;
+    delay(100);//wait for a few frames
     Center();
   } 
 
@@ -273,14 +274,15 @@ void setup(){
       PORTB |= 0x1F;//turn on pull ups
       PCMSK0 |= 0x1F;//set interrupt mask for all of PORTK
       PCICR |= 1<<0;//enable the pin change interrupt for K
+      delay(100);//wait for a few frames
       Center();
       timer = millis();
     }
   }
 
-  while (rcCommands.values.rudder < 1700){
+  while (rcCommands.values.rudder < 1850){
     if (rcType == RC){
-      delay(100);
+      delay(100);//wait for a few frames
     }
     if (rcType != RC){
       FeedLine();
@@ -335,8 +337,8 @@ void loop(){
     GetGyro();
     GetAcc();
     imu.IMUupdate();
-    imu.GetEuler();
-    if (rcCommands.values.gear > 1500){
+    if (rcCommands.values.gear < 1500){
+      imu.GetEuler();
       Angle();
     }
     Rate();

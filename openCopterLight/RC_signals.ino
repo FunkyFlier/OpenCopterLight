@@ -1,5 +1,5 @@
 void ProcessChannels(){
-  if (rcCommands.values.gear > 1500){
+  if (rcCommands.values.gear < 1500){
     MapVar(&rcCommands.values.aileron,&rollSetPoint,1000,2000,-60,60);
     MapVar(&rcCommands.values.elevator,&pitchSetPoint,1000,2000,-60,60);
     MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);

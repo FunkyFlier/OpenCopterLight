@@ -16,11 +16,11 @@ void LevelAngles(){
 
 
 void AccInit(){
-  I2c.write(ADXL435_ADDR,BW_RATE,0x0C);
+  I2c.write(ADXL435_ADDR,BW_RATE,0x0C);//400Hz update
   delay(10);
-  I2c.write(ADXL435_ADDR,POWER_CTL,0x08);
+  I2c.write(ADXL435_ADDR,POWER_CTL,0x08);//start measurment
   delay(10);
-  I2c.write(ADXL435_ADDR,DATA_FORMAT,0x0B);
+  I2c.write(ADXL435_ADDR,DATA_FORMAT,0x0B);//full resolution + / - 16g
   delay(10);
   I2c.write(ADXL435_ADDR,FIFO_CTL,0x00);  
   delay(10);

@@ -27,8 +27,12 @@
 #include <I2C.h>
 #include "openIMUL.h"
 #include "MPIDL.h"//the L is for local in case there is already a library by that name
+#include <Streaming.h>
 
 #define LIFTOFF 1175 
+#define TRANSMIT_TIME 20
+#define radio Serial1
+
 
 //LED defines
 #define RED 13
@@ -100,9 +104,9 @@
 #define PI_FLOAT     3.14159265f
 #define PIBY2_FLOAT  1.5707963f
 
-#define DebugOutput() DDRF |= 1<<4
-#define DebugHigh() PORTF |= 1<<4
-#define DebugLow() PORTF &= ~(1<<4)
+#define DebugOutput() DDRD |= 1<<3
+#define DebugHigh() PORTD |= 1<<3
+#define DebugLow() PORTD &= ~(1<<3)
 
 typedef union{
   struct{
@@ -169,51 +173,117 @@ int16_t offsetX,offsetY,offsetZ;
 
 //IMU related vars
 float radianGyroX,radianGyroY,radianGyroZ;
-float degreeGyroX,degreeGyroY,degreeGyroZ;
+//float degreeGyroX,degreeGyroY,degreeGyroZ;
 float smoothAccX,smoothAccY,smoothAccZ;
 float accToFilterX,accToFilterY,accToFilterZ;
 float dt;
 
 //control related vars
 boolean integrate = false;
+boolean gainToggle = true;
 uint16_t motorCommand1,motorCommand2,motorCommand3,motorCommand4;
 
-float pitchSetPoint;
-float rollSetPoint;
-float pitchAngle;
-float rollAngle;
-float rateSetPointX;    
-float rateSetPointY;
-float rateSetPointZ;
-float adjustmentX;
-float adjustmentY;
-float adjustmentZ; 
+
+typedef union {
+  struct{
+    long timestamp;
+    float pitchSetPoint;
+    float pitchAngle;
+    float rollSetPoint;
+    float rollAngle;
+    float degreeGyroX;
+    float degreeGyroY;
+    float degreeGyroZ;
+    float rateSetPointX;    
+    float rateSetPointY;
+    float rateSetPointZ;
+    float adjustmentX;
+    float adjustmentY;
+    float adjustmentZ; 
+    float throttle;
+  }
+  v;
+  byte buffer[60];
+}
+transmissionUnion_t;
+
+//radio vars
+byte inGainBuffer[7];
+byte radioInByte;
+uint8_t inGainBufferIndex = 0;
+uint8_t gainBufferIndex = 0;
+
+transmissionUnion_t t;
+typedef union{
+  struct{
+    float kp_r_p;
+    float ki_r_p;
+    float kd_r_p;
+    float nPitch;
+
+    float kp_r_r;
+    float ki_r_r;
+    float kd_r_r;
+    float nRoll;
+
+    float kp_r_y;
+    float ki_r_y;
+    float kd_r_y;
+    float nYaw;
+
+    float kp_a_p;
+    float ki_a_p;
+    float kd_a_p;
+    float nPitchA;
+
+    float kp_a_r;
+    float ki_a_r;
+    float kd_a_r;
+    float nRollA;
+
+  }
+  v;
+  byte buffer[80];
+}
+gainUnion_t;
+
+gainUnion_t g;//contains the gains
+/*float pitchSetPoint;
+ float rollSetPoint;
+ float pitchAngle;
+ float rollAngle;
+ float rateSetPointX;    
+ float rateSetPointY;
+ float rateSetPointZ;
+ float adjustmentX;
+ float adjustmentY;
+ float adjustmentZ; */
 
 
-float kp_r_p = 0.65;
-float ki_r_p = 0.05;
-float kd_r_p = 0.01423;
-float nPitch = 19.5924;
-
-float kp_r_r = 0.65;
-float ki_r_r = 0.05;
-float kd_r_r = 0.01423;
-float nRoll = 19.5924;
-
-float kp_r_y = 6.9389;
-float ki_r_y = 0.22747;
-float kd_r_y = -0.42597;
-float nYaw = 4.4174;
-
-float kp_a_p = 4.6527;
-float ki_a_p = 0.2005;
-float kd_a_p = 0.11256;
-float nPitchA = 47.9596;
-
-float kp_a_r = 4.6527;
-float ki_a_r = 0.2005;
-float kd_a_r = 0.11256;
-float nRollA = 47.9596;
+/*float kp_r_p = 0.65;
+ float ki_r_p = 0.05;
+ float kd_r_p = 0.01423;
+ float nPitch = 19.5924;
+ 
+ float kp_r_r = 0.65;
+ float ki_r_r = 0.05;
+ float kd_r_r = 0.01423;
+ float nRoll = 19.5924;
+ 
+ float kp_r_y = 6.9389;
+ float ki_r_y = 0.22747;
+ float kd_r_y = -0.42597;
+ float nYaw = 4.4174;
+ 
+ float kp_a_p = 2.75;
+ float ki_a_p = 0.1;
+ float kd_a_p = 0.05;
+ float nPitchA = 47.9596;
+ 
+ float kp_a_r = 2.75;
+ float ki_a_r = 0.1;
+ float kd_a_r = 0.05;
+ float nRollA = 47.9596;*/
 
 
 
@@ -227,12 +297,12 @@ uint32_t timer,printTimer;
 //this is how you use the AHRS and Altimeter
 openIMU imu(&radianGyroX,&radianGyroY,&radianGyroZ,&accToFilterX,&accToFilterY,&accToFilterZ,&dt);
 
-MPID PitchAngle(&pitchSetPoint,&imu.pitch,&rateSetPointY,&integrate,&kp_a_p,&ki_a_p,&kd_a_p,&nPitchA,&dt,500,500);
-MPID RollAngle(&rollSetPoint,&imu.roll,&rateSetPointX,&integrate,&kp_a_r,&ki_a_r,&kd_a_r,&nRollA,&dt,500,500);
+MPID PitchAngle(&t.v.pitchSetPoint,&imu.pitch,&t.v.rateSetPointY,&integrate,&g.v.kp_a_p,&g.v.ki_a_p,&g.v.kd_a_p,&g.v.nPitchA,&dt,600,600);
+MPID RollAngle(&t.v.rollSetPoint,&imu.roll,&t.v.rateSetPointX,&integrate,&g.v.kp_a_r,&g.v.ki_a_r,&g.v.kd_a_r,&g.v.nRollA,&dt,600,600);
 
-MPID PitchRate(&rateSetPointY,&degreeGyroY,&adjustmentY,&integrate,&kp_r_p,&ki_r_p,&kd_r_p,&nPitch,&dt,500,500);
-MPID RollRate(&rateSetPointX,&degreeGyroX,&adjustmentX,&integrate,&kp_r_r,&ki_r_r,&kd_r_r,&nRoll,&dt,500,500);
-MPID YawRate(&rateSetPointZ,&degreeGyroZ,&adjustmentZ,&integrate,&kp_r_y,&ki_r_y,&kd_r_y,&nYaw,&dt,500,500);
+MPID PitchRate(&t.v.rateSetPointY,&t.v.degreeGyroY,&t.v.adjustmentY,&integrate,&g.v.kp_r_p,&g.v.ki_r_p,&g.v.kd_r_p,&g.v.nPitch,&dt,500,500);
+MPID RollRate(&t.v.rateSetPointX,&t.v.degreeGyroX,&t.v.adjustmentX,&integrate,&g.v.kp_r_r,&g.v.ki_r_r,&g.v.kd_r_r,&g.v.nRoll,&dt,500,500);
+MPID YawRate(&t.v.rateSetPointZ,&t.v.degreeGyroZ,&t.v.adjustmentZ,&integrate,&g.v.kp_r_y,&g.v.ki_r_y,&g.v.kd_r_y,&g.v.nYaw,&dt,500,500);
 
 boolean failSafe = false;
 boolean toggle;
@@ -246,7 +316,7 @@ void setup(){
   pinMode(GREEN,OUTPUT);
   digitalWrite(YELLOW,HIGH);
   digitalWrite(RED,HIGH);
-
+  Serial.begin(115200);
   MotorInit();
   DetectRC();
   if (rcType == RC){
@@ -323,6 +393,34 @@ void setup(){
   digitalWrite(YELLOW,LOW);
   digitalWrite(GREEN,HIGH);
   DebugOutput();
+  g.v.kp_r_p = 0.65;
+  g.v.ki_r_p = 0.05;
+  g.v.kd_r_p = 0.01423;
+  g.v.nPitch = 19.5924;
+
+  g.v.kp_r_r = 0.65;
+  g.v.ki_r_r = 0.05;
+  g.v.kd_r_r = 0.01423;
+  g.v.nRoll = 19.5924;
+
+  g.v.kp_r_y = 6.9389;
+  g.v.ki_r_y = 0.22747;
+  g.v.kd_r_y = -0.42597;
+  g.v.nYaw = 4.4174;
+
+  g.v.kp_a_p = 4.6527;
+  g.v.ki_a_p = 0.2005;
+  g.v.kd_a_p = 0.11256;
+  g.v.nPitchA = 47.9596;
+
+  g.v.kp_a_r = 4.6527;
+  g.v.ki_a_r = 0.2005;
+  g.v.kd_a_r = 0.11256;
+  g.v.nRollA = 47.9596;
+
+  radio.end();
+  radio.begin(115200);
+
   loopCount = 0;
   printTimer = millis();
   failSafeTimer = millis();
@@ -331,14 +429,17 @@ void setup(){
 
 void loop(){
 
-  if (micros() - timer > 2631){//~380 hz  
+  if (micros() - timer > 2500){//~400 hz  
     dt = ((micros() - timer) / 1000000.0);
     timer = micros();
     GetGyro();
+
     GetAcc();
     imu.IMUupdate();
     if (rcCommands.values.gear < 1500){
       imu.GetEuler();
+      t.v.pitchAngle = imu.pitch;
+      t.v.rollAngle = imu.roll;
       Angle();
     }
     Rate();
@@ -352,6 +453,8 @@ void loop(){
     newRC = false;
     failSafeTimer = millis();
     ProcessChannels();
+    //Serial<<imu.pitch<<","<<imu.roll<<"\r\n";
+
   }  
   if (millis() - failSafeTimer > 1000){
     failSafe = true;
@@ -368,6 +471,12 @@ void loop(){
       digitalWrite(RED,LOW);
       delay(500);
     }
+  }
+  if (gainToggle == true){
+    Gains();
+  }
+  else{
+    Transmit();
   }
 }
 
@@ -386,6 +495,9 @@ void MapVar (int16_t *x, float *y, float in_min, float in_max, float out_min, fl
 void MapVar (uint16_t *x, float *y, float in_min, float in_max, float out_min, float out_max){
   *y = (*x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+
+
 
 
 

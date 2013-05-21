@@ -40,7 +40,7 @@ void GyroInit(){
   delay(10);
   I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG5,0x02);
   delay(10);
-  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0x8F);
+  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0xCF);
   delay(10);
   //this section takes an average of 500 samples to calculate the offset
   //if this step is skipped the IMU will still work, but this simple step gives better results
@@ -74,12 +74,12 @@ void GetGyro(){
   }
   //don't forget to convert to radians per second. This absolutely will not work otherwise
   //check the data sheet for more info on this
-  degreeGyroX = (gyro.v.x - offsetX) * 0.07;
-  degreeGyroY = -1.0 * ((gyro.v.y - offsetY) * 0.07);
-  degreeGyroZ = -1.0 * ((gyro.v.z - offsetZ) * 0.07);
-  radianGyroX = ToRad(degreeGyroX);
-  radianGyroY = ToRad(degreeGyroY);
-  radianGyroZ = ToRad(degreeGyroZ);
+  t.v.degreeGyroX = (gyro.v.x - offsetX) * 0.07;
+  t.v.degreeGyroY = -1.0 * ((gyro.v.y - offsetY) * 0.07);
+  t.v.degreeGyroZ = -1.0 * ((gyro.v.z - offsetZ) * 0.07);
+  radianGyroX = ToRad(t.v.degreeGyroX);
+  radianGyroY = ToRad(t.v.degreeGyroY);
+  radianGyroZ = ToRad(t.v.degreeGyroZ);
 }
 
 void GetAcc(){

@@ -1,41 +1,46 @@
 void ProcessChannels(){
+  t.v.throttle = rcCommands.values.throttle;
   if (rcCommands.values.gear < 1500){
-    MapVar(&rcCommands.values.aileron,&rollSetPoint,1000,2000,-60,60);
-    MapVar(&rcCommands.values.elevator,&pitchSetPoint,1000,2000,-60,60);
-    MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
-    if (rollSetPoint < 2 && rollSetPoint > -2){
-      rollSetPoint = 0;
+    MapVar(&rcCommands.values.aileron,&t.v.rollSetPoint,1000,2000,-60,60);
+    MapVar(&rcCommands.values.elevator,&t.v.pitchSetPoint,1000,2000,-60,60);
+    MapVar(&rcCommands.values.rudder,&t.v.rateSetPointZ,1000,2000,-300,300);
+    if (t.v.rollSetPoint < 2 && t.v.rollSetPoint > -2){
+      t.v.rollSetPoint = 0;
     }
-    if (pitchSetPoint < 2 && pitchSetPoint > -2){
-      pitchSetPoint = 0;
+    if (t.v.pitchSetPoint < 2 && t.v.pitchSetPoint > -2){
+      t.v.pitchSetPoint = 0;
     }
+    //Serial<<rollSetPoint<<","<<pitchSetPoint<<","<<rateSetPointZ<<"\r\n";
   }
   else{
-    MapVar(&rcCommands.values.aileron,&rateSetPointX,1000,2000,-300,300);
-    MapVar(&rcCommands.values.elevator,&rateSetPointY,1000,2000,-300,300);
-    MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
+    /*MapVar(&rcCommands.values.aileron,&t.v.rateSetPointX,1000,2000,-300,300);
+    MapVar(&rcCommands.values.elevator,&t.v.rateSetPointY,1000,2000,-300,300);
+    MapVar(&rcCommands.values.rudder,&t.v.rateSetPointZ,1000,2000,-300,300);
+    //Serial<<rateSetPointX<<","<<rateSetPointY<<","<<rateSetPointZ<<"\r\n";
+    //Serial<<rcCommands.values.aileron<<","<<rcCommands.values.elevator<<","<<rcCommands.values.rudder<<"\r\n";
     if (rcCommands.values.aileron > 1950){
-      rateSetPointX = 800.0;
+      t.v.rateSetPointX = 800.0;
     }
     if (rcCommands.values.aileron < 1050){
-      rateSetPointX = -800.0;
+      t.v.rateSetPointX = -800.0;
     }
     if (rcCommands.values.elevator > 1950){
-      rateSetPointY = 800.0;
+      t.v.rateSetPointY = 800.0;
     }
     if (rcCommands.values.elevator < 1050){
-      rateSetPointY = -800.0;
+      t.v.rateSetPointY = -800.0;
     }
-    if (rateSetPointY < 2 && rateSetPointY > -2){
-      rateSetPointY= 0; 
+    if (t.v.rateSetPointY < 2 && t.v.rateSetPointY > -2){
+      t.v.rateSetPointY= 0; 
     }  
-    if (rateSetPointX < 2 && rateSetPointX > -2){
-      rateSetPointX = 0; 
+    if (t.v.rateSetPointX < 2 && t.v.rateSetPointX > -2){
+      t.v.rateSetPointX = 0; 
     }      
+    //Serial<<rateSetPointX<<","<<rateSetPointY<<","<<rateSetPointZ<<"\r\n";*/
   }
 
-  if (rateSetPointZ < 2 && rateSetPointZ > -2){
-    rateSetPointZ = 0;
+  if (t.v.rateSetPointZ < 2 && t.v.rateSetPointZ > -2){
+    t.v.rateSetPointZ = 0;
   }
 
   if (rcCommands.values.throttle > LIFTOFF){

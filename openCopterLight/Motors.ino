@@ -37,16 +37,18 @@ void MotorHandler(){
     //add arm hold condition here
     if (rcCommands.values.rudder > 1700){
       digitalWrite(YELLOW,HIGH);
+      gainToggle = false;
     }
     if (rcCommands.values.rudder < 1300){
       digitalWrite(YELLOW,LOW);
+      gainToggle = true;
     }
   }
   else{
-    motorCommand1 = constrain((uint16_t)(rcCommands.values.throttle  + adjustmentX + adjustmentY - adjustmentZ),1000,2000);
-    motorCommand2 = constrain((uint16_t)(rcCommands.values.throttle - adjustmentX + adjustmentY + adjustmentZ),1000,2000);
-    motorCommand3 = constrain((uint16_t)(rcCommands.values.throttle - adjustmentX - adjustmentY - adjustmentZ),1000,2000);
-    motorCommand4 = constrain((uint16_t)(rcCommands.values.throttle + adjustmentX - adjustmentY + adjustmentZ),1000,2000);
+    motorCommand1 = constrain((uint16_t)(rcCommands.values.throttle  + t.v.adjustmentX + t.v.adjustmentY - t.v.adjustmentZ),1000,2000);
+    motorCommand2 = constrain((uint16_t)(rcCommands.values.throttle - t.v.adjustmentX + t.v.adjustmentY + t.v.adjustmentZ),1000,2000);
+    motorCommand3 = constrain((uint16_t)(rcCommands.values.throttle - t.v.adjustmentX - t.v.adjustmentY - t.v.adjustmentZ),1000,2000);
+    motorCommand4 = constrain((uint16_t)(rcCommands.values.throttle + t.v.adjustmentX - t.v.adjustmentY + t.v.adjustmentZ),1000,2000);
     
     Motor1WriteMicros(motorCommand1);
     Motor2WriteMicros(motorCommand2);

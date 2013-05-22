@@ -24,7 +24,7 @@ void AccInit(){
   delay(10);
   I2c.write(ADXL435_ADDR,FIFO_CTL,0x00);  
   delay(10);
-  for (int i = 0; i<500; i++){
+  for (int i = 0; i<100; i++){
     GetAcc();
     delay(3);
   }
@@ -40,7 +40,7 @@ void GyroInit(){
   delay(10);
   I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG5,0x02);
   delay(10);
-  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0x8F);
+  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0xCF);
   delay(10);
   //this section takes an average of 500 samples to calculate the offset
   //if this step is skipped the IMU will still work, but this simple step gives better results

@@ -100,9 +100,9 @@
 #define PI_FLOAT     3.14159265f
 #define PIBY2_FLOAT  1.5707963f
 
-#define DebugOutput() DDRF |= 1<<4
-#define DebugHigh() PORTF |= 1<<4
-#define DebugLow() PORTF &= ~(1<<4)
+#define DebugOutput() DDRD |= 1<<3
+#define DebugHigh() PORTD |= 1<<3
+#define DebugLow() PORTD &= ~(1<<3)
 
 typedef union{
   struct{
@@ -223,7 +223,7 @@ uint8_t loopCount;
 uint16_t i;//index for buffering in the data
 uint16_t j;
 uint8_t k;//index for RC signals
-uint32_t timer,printTimer;
+uint32_t timer;
 //this is how you use the AHRS and Altimeter
 openIMU imu(&radianGyroX,&radianGyroY,&radianGyroZ,&accToFilterX,&accToFilterY,&accToFilterZ,&dt);
 
@@ -308,30 +308,28 @@ void setup(){
   PitchRate.reset();
   RollRate.reset();
   YawRate.reset();
-  printTimer = millis();
+  timer = millis();
   while (rcCommands.values.throttle > 1020){
     if (rcType != RC){
       FeedLine();
     }
-    if (millis() - printTimer > 500){
+    if (millis() - timer > 500){
       digitalWrite(GREEN,toggle);
       toggle = ~toggle;
-      printTimer = millis();
+      timer = millis();
     }
 
   }
   digitalWrite(YELLOW,LOW);
   digitalWrite(GREEN,HIGH);
-  DebugOutput();
   loopCount = 0;
-  printTimer = millis();
   failSafeTimer = millis();
   timer = micros();
 }
 
 void loop(){
 
-  if (micros() - timer > 2631){//~380 hz  
+  if (micros() - timer > 2500){//~400 hz  
     dt = ((micros() - timer) / 1000000.0);
     timer = micros();
     GetGyro();

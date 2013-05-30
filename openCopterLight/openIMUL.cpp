@@ -1,7 +1,7 @@
 // Implementation of Madgwick's IMU and AHRS algorithms.
 // See: http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/
 //This code is provided under the GNU General Public Licence
-//12/19/2012
+//5/30/2013
 #include "openIMUL.h"
 
 openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *accY, float *accZ, float *scAccX, float *scAccY,float *scAccZ, float *magX, float *magY, float *magZ, float *rawAlt ,float *G_Dt){
@@ -219,10 +219,10 @@ void openIMU::IMUupdate() {
 
   magnitude = sqrt(squareSum);
 
-  //make sure that the total sum of gravity is 1 +/- .1gs
+  //make sure that the total sum of gravity is 1 +/- .15gs
   //this filter works based on the assumption that only gravity is being detected
   
-  if ((magnitude < 281) && (magnitude > 231)){
+  if ((magnitude < 11.27) && (magnitude > 8.33)){
     // Normalise accelerometer measurement
     recipNorm = InvSqrt(squareSum);
     *ax *= recipNorm;
@@ -287,7 +287,7 @@ void openIMU::AHRSupdate() {
   squareSum = *ax * *ax + *ay * *ay + *az * *az;
 
   magnitude = sqrt(squareSum);
-  if ((magnitude < 281) && (magnitude > 231)){
+  if ((magnitude < 10.78) && (magnitude > 8.82)){
     // Normalise accelerometer measurement
     recipNorm = InvSqrt(magnitude);
     *ax *= recipNorm;

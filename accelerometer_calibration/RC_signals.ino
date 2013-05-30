@@ -1,75 +1,16 @@
-void ProcessChannels(){
-  //this function processes the signals from the transmitter
-  if (rcCommands.values.gear < 1500){
-    //normal mode
-    MapVar(&rcCommands.values.aileron,&rollSetPoint,1000,2000,-60,60);
-    MapVar(&rcCommands.values.elevator,&pitchSetPoint,1000,2000,-60,60);
-    MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
-    //dead zone
-    if (rollSetPoint < 2 && rollSetPoint > -2){
-      rollSetPoint = 0;
-    }
-    if (pitchSetPoint < 2 && pitchSetPoint > -2){
-      pitchSetPoint = 0;
-    }
-  }
-  else{
-    //stunt mode
-    //the aircraft will flip very quickly at the maximum extents of the right stick
-    MapVar(&rcCommands.values.aileron,&rateSetPointX,1000,2000,-300,300);
-    MapVar(&rcCommands.values.elevator,&rateSetPointY,1000,2000,-300,300);
-    MapVar(&rcCommands.values.rudder,&rateSetPointZ,1000,2000,-300,300);
-    //increased rate for flips
-    if (rcCommands.values.aileron > 1950){
-      rateSetPointX = 600.0;
-    }
-    if (rcCommands.values.aileron < 1050){
-      rateSetPointX = -600.0;
-    }
-    if (rcCommands.values.elevator > 1950){
-      rateSetPointY = 600.0;
-    }
-    if (rcCommands.values.elevator < 1050){
-      rateSetPointY = -600.0;
-    }
-    //dead zone
-    if (rateSetPointY < 2 && rateSetPointY > -2){
-      rateSetPointY= 0; 
-    }  
-    if (rateSetPointX < 2 && rateSetPointX > -2){
-      rateSetPointX = 0; 
-    }      
-  }
-  //dead zone
-  if (rateSetPointZ < 2 && rateSetPointZ > -2){
-    rateSetPointZ = 0;
-  }
-  //throttle check
-  //do not integrate unless throttle is near take off
-  //this prevents integral windup and possibly flipping the aircraft on take off
-  if (rcCommands.values.throttle > LIFTOFF){
-    integrate = true;
-  }    
-  //this limits the maximum throttle command
-  //the purpose of this is so that at maximum throttle the craft will still be controllable
-  if (rcCommands.values.throttle > 1900){
-    rcCommands.values.throttle = 1900;
-  }
-
-}
 
 
 void Center(){
-  //take the aileron channel and centers the channels to 1500us
+
   while (newRC == false){
     delay(1);
   }
+
   offset = rcCommands.values.aileron - 1500;
 }
 
 
 ISR(PCINT0_vect){
-  //RC signal interrupt service routine
   currentPinState = PINB & 0x1F;
   changeMask = currentPinState ^ lastPinState;
   lastPinState = currentPinState;
@@ -80,12 +21,7 @@ ISR(PCINT0_vect){
         timeDifference = currentTime - changeTime[k];//if so then calculate the pulse width
         if (900 < timeDifference && timeDifference < 2200){//check to see if it is a valid length
           rcCommands.standardRCBuffer[k] = (constrain((timeDifference - offset),1080,1920) - 1080) * 1.19 + 1000;
-          if (k != 2){ //for DSM2 fail safe - in loss of signal all channels stop except for the throttle
-            newRC = true;
-          }
-          if (k == 2 && ((timeDifference ) < 1025)){//fail safe for futaba / DSMx
-            failSafe = true;
-          }
+          newRC = true;
         }
       }
       else{//the pin is logic high implying that this is the start of the pulse
@@ -95,7 +31,6 @@ ISR(PCINT0_vect){
   }
 }
 void FeedLine(){
-  //handles the serial RC
   switch(rcType){
   case 0:
     DSM2Parser();
@@ -163,18 +98,13 @@ void SBusParser(){
     rcCommands.values.aux2  = (rcCommands.values.aux2  - 352) * 0.7446 + 1000;
     rcCommands.values.aux3  = constrain(((sBusData[10]>>5|sBusData[11]<<3) & 0x07FF),352,1695);
     rcCommands.values.aux3  = (rcCommands.values.aux3  - 352) * 0.7446 + 1000;
-    if (sBusData[23] & (1<<2)) {
-      failSafe = true;
-    }
-    if (sBusData[23] & (1<<3)) {
-      failSafe = true;
-    }
 
   }
 
 }
 
 void DSMXParser(){
+
   if (Serial1.available() > 14){
     while(Serial1.available() > 0){
       inByte = Serial1.read();
@@ -295,14 +225,6 @@ void DetectRC(){
     rcType = RC;
   }
   readState = 0;
-  if (rcType == RC){
-    DDRB &= 0xE0;
-    PORTB |= 0x1F;
-    PCMSK0 |= 0x1F;
-    PCICR |= 1<<0;
-    delay(100);//wait for a few frames
-    Center();
-  } 
 }
 
 void SBus(){

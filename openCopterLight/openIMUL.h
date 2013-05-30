@@ -1,7 +1,7 @@
 // Implementation of Madgwick's IMU and AHRS algorithms.
 // See: http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/
 //This code is provided under the GNU General Public Licence
-//12/19/2012
+//5/30/2013
 //Gyro must be in RAD/s
 //Sensors must be in the North East Down convention
 #ifndef openIMUL_h

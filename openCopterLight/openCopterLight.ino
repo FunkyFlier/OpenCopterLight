@@ -24,86 +24,29 @@
  This example code will only work on the MEGA
  To use on a different arduino change the slave select defines or use digitalWrite 
  */
+ 
+//*****************************************************************************************************************//
+//CALIBRATION OF THE ELECTRONIC SPEED CONTROLLERS AND THE ACCELEROMETER MUST BE COMPLETED BEFORE ATTEMPTING TO FLY!//
+//*****************************************************************************************************************//
 #include <I2C.h>
+/*
+http://dsscircuits.com/articles/arduino-i2c-master-library.html
+ */
 #include "openIMUL.h"
 #include "MPIDL.h"//the L is for local in case there is already a library by that name
-
-#define LIFTOFF 1175 
-
-//LED defines
-#define RED 13
-#define YELLOW 6
-#define GREEN 4
-
-//gyro defines
-#define L3GD20_ADDRESS    0x6A
-#define L3G_WHO_AM_I      0x0F
-
-#define L3G_CTRL_REG1     0x20
-#define L3G_CTRL_REG2     0x21
-#define L3G_CTRL_REG3     0x22
-#define L3G_CTRL_REG4     0x23
-#define L3G_CTRL_REG5     0x24
-#define L3G_REFERENCE     0x25
-#define L3G_OUT_TEMP      0x26
-#define L3G_STATUS_REG    0x27
-
-#define L3G_OUT_X_L       0x28
-#define L3G_OUT_X_H       0x29
-#define L3G_OUT_Y_L       0x2A
-#define L3G_OUT_Y_H       0x2B
-#define L3G_OUT_Z_L       0x2C
-#define L3G_OUT_Z_H       0x2D
-
-//acc defines - Analog Devices ADXL345
-#define ADXL435_ADDR 0x53
-
-#define OFSX 0x1E //15.6 mg/LSB (that is, 0x7F = +2 g)
-#define OFSY 0x1F
-#define OFSZ 0x20
-
-#define BW_RATE 0x2C
-#define POWER_CTL 0x2D
-#define DATA_FORMAT 0x31
-
-#define DATAX0 0x32
-#define DATAX1 0x33
-#define DATAY0 0x34
-#define DATAY1 0x35
-#define DATAZ0 0x36
-#define DATAZ1 0x37
-#define FIFO_CTL 0x38
+#include "openCopterLight.h"
 
 
-//RC defines
-#define DSM2 0
-#define DSMX 1
-#define SBUS 2
-#define RC 3
-#define HEX_ZERO 0x00
+//accelerometer calibration values
+//this is where the values from the accelerometer calibration sketch belong
+#define ACC_OFFSET_X 16.5995693f
+#define ACC_OFFSET_Y -1.8143798f
+#define ACC_OFFSET_Z 21.5479583f
+#define ACC_SCALE_X 0.0378606f
+#define ACC_SCALE_Y 0.0376480f
+#define ACC_SCALE_Z 0.0389106f
 
-
-//motor defines
-#define FREQ 400
-#define PRESCALE 8
-#define PERIOD ((F_CPU/PRESCALE/FREQ) - 1)
-
-#define Motor1WriteMicros(x) OCR3A = x * 2
-#define Motor2WriteMicros(x) OCR1B = x * 2
-#define Motor3WriteMicros(x) OCR1A = x * 2
-#define Motor4WriteMicros(x) OCR1C = x * 2
-
-
-
-#define ToRad(x) ((x)*0.01745329252)  // *pi/180
-#define ToDeg(x) ((x)*57.2957795131)  // *180/pi
-#define PI_FLOAT     3.14159265f
-#define PIBY2_FLOAT  1.5707963f
-
-#define DebugOutput() DDRD |= 1<<3
-#define DebugHigh() PORTD |= 1<<3
-#define DebugLow() PORTD &= ~(1<<3)
-
+//sensor data 
 typedef union{
   struct{
     int16_t x;
@@ -114,42 +57,36 @@ typedef union{
   uint8_t buffer[6];
 }
 Sensor_t;
-
 Sensor_t gyro;
 Sensor_t acc;
 
-//RC vars
+//RC signal variables
 uint8_t rcType,readState,inByte;
 boolean detected = false;
 boolean newRC = false;
-
-
+int bufferIndex=0;
+//this is used to get the DSM2/DSMx channels in the right order
 uint8_t syncArray1[14] = {
   1,0,11,10,3,2,9,8,7,6,13,12,5,4};
 uint8_t syncArray2[14] = {
   1,0,11,10,9,8,3,2,13,12,5,4,7,6};
 
-int bufferIndex=0;
-
 typedef union{
   struct{
-    uint16_t aileron;//A8
-    uint16_t elevator;//A10
-    uint16_t throttle;//A14
-    uint16_t rudder;//A12
-    uint16_t gear;//A11
-    uint16_t aux1;//A9
-    uint16_t aux2;//A13
-    uint16_t aux3;//A15 only for futaba or standard RC
+    uint16_t aileron;
+    uint16_t elevator;
+    uint16_t throttle;
+    uint16_t rudder;
+    uint16_t gear;
+    uint16_t aux1;
+    uint16_t aux2;
+    uint16_t aux3;
   }
   values;
   byte buffer[16];
   uint16_t standardRCBuffer[8];
 }
 RadioControl_t;
-
-
-
 RadioControl_t rcCommands;
 
 uint8_t currentPinState = 0;
@@ -160,7 +97,6 @@ uint16_t currentTime = 0;
 uint16_t timeDifference = 0;
 uint16_t changeTime[8];
 int16_t offset = 0;
-
 uint8_t sBusData[25];
 
 //for the calibration of the gyro
@@ -188,8 +124,7 @@ float rateSetPointZ;
 float adjustmentX;
 float adjustmentY;
 float adjustmentZ; 
-
-
+//gains for the PID loops
 float kp_r_p = 0.65;
 float ki_r_p = 0.05;
 float kd_r_p = 0.01423;
@@ -215,28 +150,25 @@ float ki_a_r = 0.2005;
 float kd_a_r = 0.11256;
 float nRollA = 47.9596;
 
-
-
-
-
-uint8_t loopCount;
-uint16_t i;//index for buffering in the data
+//general purpose index variables
+uint16_t i;
 uint16_t j;
-uint8_t k;//index for RC signals
+uint8_t k;
 uint32_t timer;
-//this is how you use the AHRS and Altimeter
-openIMU imu(&radianGyroX,&radianGyroY,&radianGyroZ,&accToFilterX,&accToFilterY,&accToFilterZ,&dt);
 
+//set up the attitude estimator 
+openIMU imu(&radianGyroX,&radianGyroY,&radianGyroZ,&accToFilterX,&accToFilterY,&accToFilterZ,&dt);
+//set up the PID loops
 MPID PitchAngle(&pitchSetPoint,&imu.pitch,&rateSetPointY,&integrate,&kp_a_p,&ki_a_p,&kd_a_p,&nPitchA,&dt,500,500);
 MPID RollAngle(&rollSetPoint,&imu.roll,&rateSetPointX,&integrate,&kp_a_r,&ki_a_r,&kd_a_r,&nRollA,&dt,500,500);
-
 MPID PitchRate(&rateSetPointY,&degreeGyroY,&adjustmentY,&integrate,&kp_r_p,&ki_r_p,&kd_r_p,&nPitch,&dt,500,500);
 MPID RollRate(&rateSetPointX,&degreeGyroX,&adjustmentX,&integrate,&kp_r_r,&ki_r_r,&kd_r_r,&nRoll,&dt,500,500);
 MPID YawRate(&rateSetPointZ,&degreeGyroZ,&adjustmentZ,&integrate,&kp_r_y,&ki_r_y,&kd_r_y,&nYaw,&dt,500,500);
 
+//saftey related variables
 boolean failSafe = false;
+boolean hold = true;
 boolean toggle;
-
 long failSafeTimer;
 
 
@@ -246,89 +178,24 @@ void setup(){
   pinMode(GREEN,OUTPUT);
   digitalWrite(YELLOW,HIGH);
   digitalWrite(RED,HIGH);
-
-  MotorInit();
+  MotorInit();//start the motor signals
   DetectRC();
-  if (rcType == RC){
-    DDRB &= 0xE0;
-    PORTB |= 0x1F;
-    PCMSK0 |= 0x1F;
-    PCICR |= 1<<0;
-    delay(100);//wait for a few frames
-    Center();
-  } 
-
-  //arming procedure
-  newRC = false;
-  timer = millis();
-  while (newRC == false){
-    if (rcType == RC){
-      delay(100);
-    }
-    if (rcType != RC){
-      FeedLine();
-    }
-    if (millis() - timer > 1000){//in case it has incorrectly detected serial RC
-      rcType = RC;
-      DDRB &= 0xE0;
-      PORTB |= 0x1F;//turn on pull ups
-      PCMSK0 |= 0x1F;//set interrupt mask for all of PORTK
-      PCICR |= 1<<0;//enable the pin change interrupt for K
-      delay(100);//wait for a few frames
-      Center();
-      timer = millis();
-    }
-  }
-
-  while (rcCommands.values.rudder < 1850){
-    if (rcType == RC){
-      delay(100);//wait for a few frames
-    }
-    if (rcType != RC){
-      FeedLine();
-    }
-  } 
-  newRC = false;
-
-
-  digitalWrite(RED,LOW);
-
+  Arm();//move the rudder to the right to begin calibration
   I2c.begin();
   I2c.setSpeed(1);
-
   GyroInit();
   AccInit();
-
   LevelAngles();
-
-
-  PitchAngle.reset();
-  RollAngle.reset();
-
-  PitchRate.reset();
-  RollRate.reset();
-  YawRate.reset();
-  timer = millis();
-  while (rcCommands.values.throttle > 1020){
-    if (rcType != RC){
-      FeedLine();
-    }
-    if (millis() - timer > 500){
-      digitalWrite(GREEN,toggle);
-      toggle = ~toggle;
-      timer = millis();
-    }
-
-  }
+  Reset();
+  SafetyCheck();
   digitalWrite(YELLOW,LOW);
+  digitalWrite(RED,HIGH);
   digitalWrite(GREEN,HIGH);
-  loopCount = 0;
   failSafeTimer = millis();
   timer = micros();
 }
 
 void loop(){
-
   if (micros() - timer > 2500){//~400 hz  
     dt = ((micros() - timer) / 1000000.0);
     timer = micros();
@@ -336,8 +203,14 @@ void loop(){
     GetAcc();
     imu.IMUupdate();
     if (rcCommands.values.gear < 1500){
+      //the gear channel toggles stunt mode
+      //stunt mode is much more difficult to fly in than normal mode
       imu.GetEuler();
       Angle();
+      digitalWrite(YELLOW,LOW);
+    }
+    else{
+      digitalWrite(YELLOW,HIGH);
     }
     Rate();
     MotorHandler();
@@ -369,21 +242,16 @@ void loop(){
   }
 }
 
+//simple low pass filter
 void Smoothing(int16_t *raw, float *smooth){
   *smooth = (*raw * (0.10)) + (*smooth * 0.90);
 }
-void MapVar (float *x, float *y, float in_min, float in_max, float out_min, float out_max){
-  *y = (*x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-void MapVar (int16_t *x, float *y, float in_min, float in_max, float out_min, float out_max){
-  *y = (*x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-
-
+//mapping function
 void MapVar (uint16_t *x, float *y, float in_min, float in_max, float out_min, float out_max){
   *y = (*x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+
 
 
 

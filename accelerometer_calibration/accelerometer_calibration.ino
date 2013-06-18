@@ -124,6 +124,8 @@ uint8_t sBusData[25];
 
 long timer;
 
+boolean sample = false,calculate = false;
+
 void setup()
 {
   // initialize the serial communications:
@@ -167,18 +169,34 @@ void loop(){
   if (rcType != RC){
     FeedLine();
   }  
-
-  if (rcCommands.values.rudder > 1700) {
+  if (newRC == true){
+    newRC = false;
+    if (rcCommands.values.rudder > 1700) {
+      sample = true;
+    }
+    if (rcCommands.values.rudder < 1200) {
+      calculate = true;
+    }
+  }
+  if (sample == true) {
+    sample = false;
     Serial.println("Take sample");
     delay(2000);
     take_sample(data + 3*(n_samp%samp_capacity));
     n_samp++;
+    while(Serial1.available() > 0){//flush the port to get the newest frame
+      Serial1.read();
+    }
   }
 
-  if (rcCommands.values.rudder < 1200) {
+  if (calculate == true) {
+    calculate = false;
     Serial.println("Calibrate");
     delay(2000);
     calibrate_model();
+    while(Serial1.available() > 0){//flush the port to get the newest frame
+      Serial1.read();
+    }
   }
 
 }
@@ -195,11 +213,11 @@ void take_sample(int* sample_out) {
     //Make all variables longs because we will do some aritmetic that 
     // will overflow an int.
     long sum[] = {
-      0,0,0                        };
+      0,0,0                            };
     long sum_squares[] = {
-      0,0,0                        };
+      0,0,0                            };
     long variance[] = {
-      0,0,0                        };
+      0,0,0                            };
     long x,y,z;
     for(i=0;i< (1<<first_pass_size);++i) {
 
@@ -392,16 +410,17 @@ void calibrate_model() {
     reset_calibration_matrices();
 
   }
-  Serial<<"\r\nACC_OFFSET_X: "<<_FLOAT(beta[0],7)<<"\r\nACC_OFFSET_Y: "<<_FLOAT(beta[1],7)<<"\r\nACC_OFFSET_Z: "<<_FLOAT(beta[2],7)
-  <<"\r\nACC_SCALE_X: "<<_FLOAT((beta[3]*9.8),7)<<"\r\nACC_SCALE_Y: "<<_FLOAT((beta[4]*9.8),7)<<"\r\nACC_SCALE_Z: "<<_FLOAT((beta[5]*9.8),7)<<"\r\n";
+  Serial<<"\r\n#define ACC_OFFSET_X: "<<_FLOAT(beta[0],7)<<"\r\n#define ACC_OFFSET_Y: "<<_FLOAT(beta[1],7)<<"\r\n#define ACC_OFFSET_Z: "<<_FLOAT(beta[2],7)
+    <<"\r\n#define ACC_SCALE_X: "<<_FLOAT((beta[3]*9.8),7)<<"\r\n#define ACC_SCALE_Y: "<<_FLOAT((beta[4]*9.8),7)<<"\r\n#define ACC_SCALE_Z: "<<_FLOAT((beta[5]*9.8),7)<<"\r\n";
 
   /*Serial.print("\n");
-  for(i=0;i<6;++i) {
-    Serial.print(beta[i], 7);
-    Serial.print(" ");
-  }
-  Serial.println();*/
+   for(i=0;i<6;++i) {
+   Serial.print(beta[i], 7);
+   Serial.print(" ");
+   }
+   Serial.println();*/
 }
+
 
 
 

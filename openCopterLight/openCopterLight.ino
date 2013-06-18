@@ -39,12 +39,12 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 
 //accelerometer calibration values
 //this is where the values from the accelerometer calibration sketch belong
-#define ACC_OFFSET_X 16.5995693f
-#define ACC_OFFSET_Y -1.8143798f
-#define ACC_OFFSET_Z 21.5479583f
-#define ACC_SCALE_X 0.0378606f
-#define ACC_SCALE_Y 0.0376480f
-#define ACC_SCALE_Z 0.0389106f
+#define ACC_OFFSET_X  2.3413698f
+#define ACC_OFFSET_Y -0.4740458f
+#define ACC_OFFSET_Z 26.5365638f
+#define ACC_SCALE_X 0.0370868f
+#define ACC_SCALE_Y 0.0373058f
+#define ACC_SCALE_Z 0.0391581f
 
 //sensor data 
 typedef union{

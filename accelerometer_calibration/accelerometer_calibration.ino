@@ -410,8 +410,8 @@ void calibrate_model() {
     reset_calibration_matrices();
 
   }
-  Serial<<"\r\n#define ACC_OFFSET_X: "<<_FLOAT(beta[0],7)<<"\r\n#define ACC_OFFSET_Y: "<<_FLOAT(beta[1],7)<<"\r\n#define ACC_OFFSET_Z: "<<_FLOAT(beta[2],7)
-    <<"\r\n#define ACC_SCALE_X: "<<_FLOAT((beta[3]*9.8),7)<<"\r\n#define ACC_SCALE_Y: "<<_FLOAT((beta[4]*9.8),7)<<"\r\n#define ACC_SCALE_Z: "<<_FLOAT((beta[5]*9.8),7)<<"\r\n";
+  Serial<<"\r\n#define ACC_OFFSET_X "<<_FLOAT(beta[0],7)<<"\r\n#define ACC_OFFSET_Y "<<_FLOAT(beta[1],7)<<"\r\n#define ACC_OFFSET_Z "<<_FLOAT(beta[2],7)
+    <<"\r\n#define ACC_SCALE_X "<<_FLOAT((beta[3]*9.8),7)<<"\r\n#define ACC_SCALE_Y "<<_FLOAT((beta[4]*9.8),7)<<"\r\n#define ACC_SCALE_Z "<<_FLOAT((beta[5]*9.8),7)<<"\r\n";
 
   /*Serial.print("\n");
    for(i=0;i<6;++i) {

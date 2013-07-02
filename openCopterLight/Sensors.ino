@@ -112,8 +112,8 @@ void GetAcc(){
   //however gravity is measured as negative in that convention by the accelerometer
   //the complimentary filter expects gravity to be positive in the North East Down convention
   accToFilterX = -1.0 * ((smoothAccX - ACC_OFFSET_X) * ACC_SCALE_X);//if the value from the smoothing filter is sent it will not work when the algorithm normalizes the vector
-  accToFilterY = -1.0 * ((smoothAccY - ACC_OFFSET_Y) * ACC_SCALE_Y);;
-  accToFilterZ = -1.0 * ((smoothAccZ - ACC_OFFSET_Z) * ACC_SCALE_Z);;
+  accToFilterY = -1.0 * ((smoothAccY - ACC_OFFSET_Y) * ACC_SCALE_Y);
+  accToFilterZ = -1.0 * ((smoothAccZ - ACC_OFFSET_Z) * ACC_SCALE_Z);
 
 
 }

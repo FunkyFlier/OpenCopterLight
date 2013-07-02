@@ -97,9 +97,6 @@ ISR(PCINT0_vect){
 void FeedLine(){
   //handles the serial RC
   switch(rcType){
-  case 0:
-    DSM2Parser();
-    break;
   case 1:
     DSMXParser();
     break;
@@ -175,119 +172,78 @@ void SBusParser(){
 }
 
 void DSMXParser(){
-  if (Serial1.available() > 14){
-    while(Serial1.available() > 0){
-      inByte = Serial1.read();
-      switch (readState){
-      case 0:
-        if (inByte == HEX_ZERO || inByte == 0x2D || inByte == 0x5A || inByte == 0x87 || inByte == 0xB4 || inByte == 0xE1 || inByte == 0xFF){
-          readState = 1;
-        }
-        break;
-      case 1:
-        if (inByte == 0xA2){
-          readState = 2;
-          bufferIndex = 0;
-        }
-        break;
-      case 2:
-        if (bufferIndex % 2 == 0){
-          rcCommands.buffer[syncArray1[bufferIndex]] = inByte & 0x07;
-        }
-        else{
-          rcCommands.buffer[syncArray1[bufferIndex]] = inByte;
-        }
-        bufferIndex++;
-        if(bufferIndex == 14){
-          readState = 0;
-          newRC = true;
-        }
-        break;
-      default:
-        break;
-      }
-    }
-    rcCommands.values.aileron  = (constrain(rcCommands.values.aileron,306,1738)  - 306) * 0.69832 + 1000;
-    rcCommands.values.elevator  = (constrain(rcCommands.values.elevator,306,1738)  - 306) * 0.69832 + 1000;
-    rcCommands.values.throttle  = (constrain(rcCommands.values.throttle,306,1738)  - 306) * 0.69832 + 1000;
-    rcCommands.values.rudder  = (constrain(rcCommands.values.rudder,306,1738)  - 306) * 0.69832 + 1000;
-    rcCommands.values.gear  = (constrain(rcCommands.values.gear,306,1738)  - 306) * 0.69832 + 1000;
-    rcCommands.values.aux1  = (constrain(rcCommands.values.aux1,306,1738)  - 306) * 0.69832 + 1000;
-    if (rcCommands.values.aux2 != 0){
-      rcCommands.values.aux2  = (constrain(rcCommands.values.aux2,306,1738)  - 306) * 0.69832 + 1000;
-    }
-  }
 
-}
-void DSM2Parser(){
-  if (Serial1.available() > 14){
-    while(Serial1.available() > 0){
-      inByte = Serial1.read();
-      switch (readState){
-      case 0:
-        if (inByte == 0x03 || 0x21){
-          readState = 1;
+  while (Serial1.available() > 0){
+    if (millis() - frameTime > 8){
+      byteCount = 0;
+      bufferIndex = 0;
+    }
+    inByte = Serial1.read();
+    frameTime = millis();
+    byteCount++;
+    if (byteCount > 2){
+      spekBuffer[bufferIndex] = inByte;
+      bufferIndex++;
+    }
+    if (byteCount == 16 && bufferIndex == 14){
+      newRC = true;
+      byteCount = 0;
+      bufferIndex = 0;
+      for (int i = 0; i < 14; i=i+2){
+        channelNumber = (spekBuffer[i] >> 3) & 0x0F;
+        switch(channelNumber){
+        case 0://throttle
+          rcCommands.values.throttle = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.throttle = (rcCommands.values.throttle - 342) * 0.7331378 + 1000;
+          break;
+        case 1://aileron
+          rcCommands.values.aileron = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.aileron = (rcCommands.values.aileron - 342) * 0.7331378 + 1000;
+          break;
+        case 2://elevator
+          rcCommands.values.elevator = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.elevator = (rcCommands.values.elevator - 342) * 0.7331378 + 1000;
+          break;
+        case 3://rudder
+          rcCommands.values.rudder = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.rudder = (rcCommands.values.rudder - 342) * 0.7331378 + 1000;
+          break;
+        case 4://gear
+          rcCommands.values.gear = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.gear = (rcCommands.values.gear - 342) * 0.7331378 + 1000;
+          break;
+        case 5://aux1
+          rcCommands.values.aux1 = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.aux1 = (rcCommands.values.aux1 - 342) * 0.7331378 + 1000;
+          break;
+        case 6://aux2
+          rcCommands.values.aux2 = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.aux2 = (rcCommands.values.aux2 - 342) * 0.7331378 + 1000;
+          break;
+        case 7://aux3
+          rcCommands.values.aux3 = constrain(((spekBuffer[i] << 8) | (spekBuffer[i+1])) & 0x07FF,342,1706);
+          rcCommands.values.aux3 = (rcCommands.values.aux3 - 342) * 0.7331378 + 1000;
+          break;
+        default:
+          break;
         }
-        break;
-      case 1:
-        if (inByte == 0xA2){
-          readState = 2;
-          bufferIndex = 0;
-        }
-        if (inByte == 0xB2){
-          readState = 3;
-          bufferIndex = 0;
-        }
-        break;
-      case 2:
-        if (bufferIndex % 2 == 0){
-          rcCommands.buffer[syncArray1[bufferIndex]] = (inByte & 0x07) | 0x04;
-        }
-        else{
-          rcCommands.buffer[syncArray1[bufferIndex]] = inByte;
-        }
-        bufferIndex++;
-        if(bufferIndex == 14){
-          readState = 0;
-          newRC = true;
-        }
-        break;
-      case 3:
-        if (bufferIndex % 2 == 0){
-          rcCommands.buffer[syncArray2[bufferIndex]] = (inByte & 0x07) | 0x04;
-        }
-        else{
-          rcCommands.buffer[syncArray2[bufferIndex]] = inByte;
-        }
-        bufferIndex++;
-        if(bufferIndex == 14){
-          readState = 0;
-          newRC = true;
-        }
-        break;
-      default:
-        break;
 
       }
     }
-    rcCommands.values.aileron  = (constrain(rcCommands.values.aileron,1177,1893)  - 1177) * 1.3908 + 1003;
-    rcCommands.values.elevator  = (constrain(rcCommands.values.elevator,1177,1893)  - 1177) * 1.3908 + 1003;
-    rcCommands.values.throttle  = (constrain(rcCommands.values.throttle,1177,1893)  - 1177) * 1.3908 + 1000;
-    rcCommands.values.rudder  = (constrain(rcCommands.values.rudder,1177,1893)  - 1177) * 1.3908 + 1003;
-    rcCommands.values.gear  = (constrain(rcCommands.values.gear,1177,1893)  - 1177) * 1.3908 + 1000;
-    rcCommands.values.aux1  = (constrain(rcCommands.values.aux1,1177,1893)  - 1177) * 1.3908 + 1000;
-    rcCommands.values.aux2  = (constrain(rcCommands.values.aux2,1177,1893)  - 1177) * 1.3908 + 1000;
   }
+
+
 }
 
 void DetectRC(){
-  readState = 0;
-  Spektrum();
+   readState = 0;
+  SBus();
+
   if (detected == true){
     return;
   }
   readState = 0;
-  SBus();
+  Spektrum();
   if (detected == true){
     return;
   }
@@ -303,64 +259,99 @@ void DetectRC(){
     delay(100);//wait for a few frames
     Center();
   } 
+  newRC = false;
+  timer = millis();
+  while (newRC == false){
+    if (rcType == RC){
+      delay(100);
+    }
+    if (rcType != RC){
+      FeedLine();
+    }
+    if (millis() - timer > 1000){//in case it has incorrectly detected serial RC
+      rcType = RC;
+      DDRB &= 0xE0;
+      PORTB |= 0x1F;
+      PCMSK0 |= 0x1F;
+      PCICR |= 1<<0;
+      delay(100);//wait for a few frames
+      Center();
+      timer = millis();
+    }
+  }
+
+
 }
 
 void SBus(){
+
+  
   Serial1.begin(100000);
   timer = millis();
   while (Serial1.available() == 0){
+    Serial.println("SBUS wait");
     if (millis() - timer > 1000){
       return;
     }
   }
-  rcType = SBUS;
-  detected = true;
+  delay(50);
+  if (Serial1.available() > 24){
+    while(Serial1.available() > 0){
+      inByte = Serial1.read();
+      switch (readState){
+      case 0:
+        if (inByte != 0x0f){
+          while(Serial1.available() > 0){//read the contents of in buffer this should resync the transmission
+            inByte = Serial1.read();
+          }
+          return;
+        }
+        else{
+          bufferIndex = 0;
+          sBusData[bufferIndex] = inByte;
+          sBusData[24] = 0xff;
+          readState = 1;
+        }
+        break;
+      case 1:
+        bufferIndex ++;
+        sBusData[bufferIndex] = inByte;
+        if (bufferIndex < 24 && Serial1.available() == 0){
+          readState = 0;
+        }
+        if (bufferIndex == 24){
+          readState = 0;
+          if (sBusData[0]==0x0f && sBusData[24] == 0x00){
+            rcType = SBUS;
+            detected = true;
+          }
+        }
+        break;
+      }
+    }
+  }  
+
 }
 
 void Spektrum(){
   Serial1.begin(115200);
   timer = millis();
   while (Serial1.available() == 0){
+    Serial.println("Spektrum wait");
     if (millis() - timer > 1000){
       return;
     }
   }  
-  delay(1);
-  while (Serial1.available() > 0){
-    inByte = Serial1.read();
-    switch(readState){
-    case 0:
-      if (inByte == 0x03 || 0x21){
-        readState = 1;
-      }
-      if (inByte == HEX_ZERO || inByte == 0x2D || inByte == 0x5A || inByte == 0x87 || inByte == 0xB4 || inByte == 0xE1 || inByte == 0xFF){
-        readState = 2;
-      }
-      break;
-    case 1:
-      if (inByte == 0xA2 || inByte == 0xB2){
-        rcType = DSM2;
-        detected = true;
-        return;
-      }
-      else{
-        readState = 0;
-      }
-      break;
-    case 2:
-      if (inByte == 0xA2){
-        rcType = DSMX;
-        detected = true;
-        return;
-      }
-      else{
-        readState = 0;
-      }
-      break;
-    }
-
+  delay(5);
+  while(Serial1.available() > 0){
+    Serial1.read();
   }
+  frameTime = millis();
+  rcType = DSMX;
+  detected = true;
 }
+
+
 
 
 

@@ -39,12 +39,12 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 
 //accelerometer calibration values
 //this is where the values from the accelerometer calibration sketch belong
-#define ACC_OFFSET_X 2.1531295f     
-#define ACC_OFFSET_Y 1.2209061f                                               
-#define ACC_OFFSET_Z 23.9073009f                                              
-#define ACC_SCALE_X 0.0370916f                                                
-#define ACC_SCALE_Y 0.0372058f                                                
-#define ACC_SCALE_Z 0.0391175f
+#define ACC_OFFSET_X 2.2266886
+#define ACC_OFFSET_Y 1.3491265
+#define ACC_OFFSET_Z 25.7869796
+#define ACC_SCALE_X 0.0370742
+#define ACC_SCALE_Y 0.0373673
+#define ACC_SCALE_Z 0.0390242
 
 //sensor data 
 typedef union{
@@ -61,15 +61,13 @@ Sensor_t gyro;
 Sensor_t acc;
 
 //RC signal variables
-uint8_t rcType,readState,inByte;
+uint8_t rcType,readState,inByte,byteCount,channelNumber;
+uint32_t frameTime;
 boolean detected = false;
 boolean newRC = false;
 int bufferIndex=0;
-//this is used to get the DSM2/DSMx channels in the right order
-uint8_t syncArray1[14] = {
-  1,0,11,10,3,2,9,8,7,6,13,12,5,4};
-uint8_t syncArray2[14] = {
-  1,0,11,10,9,8,3,2,13,12,5,4,7,6};
+uint8_t spekBuffer[14];
+
 
 typedef union{
   struct{
@@ -135,7 +133,7 @@ float ki_r_r = 0.05;
 float kd_r_r = 0.01423;
 float nRoll = 19.5924;
 
-float kp_r_y = 6.9389;
+float kp_r_y = 3.0;
 float ki_r_y = 0.22747;
 float kd_r_y = -0.42597;
 float nYaw = 4.4174;

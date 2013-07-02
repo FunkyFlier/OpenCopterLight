@@ -78,17 +78,14 @@ Sensor_t acc;
 #define RC 3
 #define HEX_ZERO 0x00
 
-uint8_t rcType,readState,inByte;
+//RC signal variables
+uint8_t rcType,readState,inByte,byteCount,channelNumber;
+uint32_t frameTime;
 boolean detected = false;
 boolean newRC = false;
-
-
-uint8_t syncArray1[14] = {
-  1,0,11,10,3,2,9,8,7,6,13,12,5,4};
-uint8_t syncArray2[14] = {
-  1,0,11,10,9,8,3,2,13,12,5,4,7,6};
-
 int bufferIndex=0;
+uint8_t spekBuffer[14];
+boolean failSafe;
 
 typedef union{
   struct{

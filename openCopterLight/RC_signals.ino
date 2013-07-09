@@ -284,7 +284,6 @@ void SBus(){
   Serial1.begin(100000);
   timer = millis();
   while (Serial1.available() == 0){
-    Serial.println("SBUS wait");
     if (millis() - timer > 1000){
       return;
     }
@@ -323,7 +322,6 @@ void Spektrum(){
   Serial1.begin(115200);
   timer = millis();
   while (Serial1.available() == 0){
-    Serial.println("Spektrum wait");
     if (millis() - timer > 1000){
       return;
     }

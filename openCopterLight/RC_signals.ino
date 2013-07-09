@@ -228,15 +228,18 @@ void DSMXParser(){
 void DetectRC(){
   readState = 0;
   SBus();
-
+  readState = 0;
   if (detected == true){
     FrameCheck();
+    readState = 0;
     return;
   }
   readState = 0;
   Spektrum();
+  readState = 0;
   if (detected == true){
     FrameCheck();
+    readState = 0;
     return;
   }
   else{
@@ -251,7 +254,6 @@ void DetectRC(){
     delay(100);//wait for a few frames
     Center();
   } 
-
 
 
 }
@@ -277,19 +279,23 @@ void FrameCheck(){//checks if serial RC was incorrectly detected
       timer = millis();
     }
   } 
+
 }
 
 void SBus(){
 
   Serial1.begin(100000);
   timer = millis();
+  while(Serial1.available() > 0){
+    Serial1.read();
+  }
   while (Serial1.available() == 0){
     if (millis() - timer > 1000){
       return;
     }
   }
 
-  delay(100);
+  delay(10);
   if (Serial1.available() > 24){
     while(Serial1.available() > 0){
       inByte = Serial1.read();
@@ -316,7 +322,6 @@ void SBus(){
       }
     }
   }  
-
 }
 void Spektrum(){
   Serial1.begin(115200);
@@ -334,6 +339,8 @@ void Spektrum(){
   rcType = DSMX;
   detected = true;
 }
+
+
 
 
 

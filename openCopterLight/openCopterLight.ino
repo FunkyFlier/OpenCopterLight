@@ -39,12 +39,12 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 
 //accelerometer calibration values
 //this is where the values from the accelerometer calibration sketch belong
-#define ACC_OFFSET_X 2.2266886
-#define ACC_OFFSET_Y 1.3491265
-#define ACC_OFFSET_Z 25.7869796
-#define ACC_SCALE_X 0.0370742
-#define ACC_SCALE_Y 0.0373673
-#define ACC_SCALE_Z 0.0390242
+#define ACC_OFFSET_X 0.3995290
+#define ACC_OFFSET_Y 1.5394440
+#define ACC_OFFSET_Z -1.0840128
+#define ACC_SCALE_X 0.0381360
+#define ACC_SCALE_Y 0.0385831
+#define ACC_SCALE_Z 0.0399804 
 
 //sensor data 
 typedef union{
@@ -169,8 +169,8 @@ boolean hold = true;
 boolean toggle;
 long failSafeTimer;
 
-
 void setup(){
+  Serial.begin(115200);
   pinMode(RED,OUTPUT);
   pinMode(YELLOW,OUTPUT);
   pinMode(GREEN,OUTPUT);
@@ -191,6 +191,7 @@ void setup(){
   digitalWrite(GREEN,HIGH);
   failSafeTimer = millis();
   timer = micros();
+
 }
 
 void loop(){
@@ -232,6 +233,7 @@ void loop(){
     Motor4WriteMicros(1000);
     digitalWrite(GREEN,LOW);
     while(1){
+      FeedLine();
       digitalWrite(RED,HIGH);
       delay(500);
       digitalWrite(RED,LOW);

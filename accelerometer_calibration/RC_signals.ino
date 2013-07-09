@@ -1,3 +1,4 @@
+
 void Center(){
   //take the aileron channel and centers the channels to 1500us
   while (newRC == false){
@@ -19,7 +20,7 @@ ISR(PCINT0_vect){
         timeDifference = currentTime - changeTime[k];//if so then calculate the pulse width
         if (900 < timeDifference && timeDifference < 2200){//check to see if it is a valid length
           rcCommands.standardRCBuffer[k] = (constrain((timeDifference - offset),1080,1920) - 1080) * 1.19 + 1000;
-          if (k != 2){ //for DSM2 fail safe - in loss of signal all channels stop except for the throttle
+          if (k != 2){ //fail safe - in loss of signal all channels stop except for the throttle
             newRC = true;
           }
           if (k == 2 && ((timeDifference ) < 1025)){//fail safe for futaba / DSMx
@@ -34,6 +35,7 @@ ISR(PCINT0_vect){
   }
 }
 void FeedLine(){
+  //handles the serial RC
   switch(rcType){
   case 1:
     DSMXParser();
@@ -89,6 +91,12 @@ void SBusParser(){
     rcCommands.values.aux2  = (rcCommands.values.aux2  - 352) * 0.7446 + 1000;
     rcCommands.values.aux3  = constrain(((sBusData[10]>>5|sBusData[11]<<3) & 0x07FF),352,1695);
     rcCommands.values.aux3  = (rcCommands.values.aux3  - 352) * 0.7446 + 1000;
+    if (sBusData[23] & (1<<2)) {
+      failSafe = true;
+    }
+    if (sBusData[23] & (1<<3)) {
+      failSafe = true;
+    }
   }
 
 }
@@ -101,7 +109,6 @@ void DSMXParser(){
       bufferIndex = 0;
     }
     inByte = Serial1.read();
-
     frameTime = millis();
     byteCount++;
     if (byteCount > 2){
@@ -158,17 +165,21 @@ void DSMXParser(){
 
 }
 
-
 void DetectRC(){
   readState = 0;
   SBus();
-
+  readState = 0;
   if (detected == true){
+    FrameCheck();
+    readState = 0;
     return;
   }
   readState = 0;
   Spektrum();
+  readState = 0;
   if (detected == true){
+    FrameCheck();
+    readState = 0;
     return;
   }
   else{
@@ -183,20 +194,48 @@ void DetectRC(){
     delay(100);//wait for a few frames
     Center();
   } 
+
+
 }
 
+void FrameCheck(){//checks if serial RC was incorrectly detected
+  newRC = false;
+  timer = millis();
+  while (newRC == false){
+    if (rcType == RC){
+      delay(100);
+    }
+    if (rcType != RC){
+      FeedLine();
+    }
+    if (millis() - timer > 1000){//in case it has incorrectly detected serial RC
+      rcType = RC;
+      DDRB &= 0xE0;
+      PORTB |= 0x1F;
+      PCMSK0 |= 0x1F;
+      PCICR |= 1<<0;
+      delay(100);//wait for a few frames
+      Center();
+      timer = millis();
+    }
+  } 
+
+}
 
 void SBus(){
 
   Serial1.begin(100000);
   timer = millis();
+  while(Serial1.available() > 0){
+    Serial1.read();
+  }
   while (Serial1.available() == 0){
     if (millis() - timer > 1000){
       return;
     }
   }
 
-  delay(100);
+  delay(10);
   if (Serial1.available() > 24){
     while(Serial1.available() > 0){
       inByte = Serial1.read();
@@ -223,9 +262,7 @@ void SBus(){
       }
     }
   }  
-
 }
-
 void Spektrum(){
   Serial1.begin(115200);
   timer = millis();
@@ -241,12 +278,7 @@ void Spektrum(){
   frameTime = millis();
   rcType = DSMX;
   detected = true;
-
 }
-
-
-
-
 
 
 

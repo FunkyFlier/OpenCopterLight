@@ -133,7 +133,7 @@ void SBusParser(){
     }
   }
 
-  if (newData == true){
+  if (newRC == true){
     //credit to the folks at multiWii for this sBus parsing algorithm
     rcCommands.values.aileron  = constrain(((sBusData[1]|sBusData[2]<< 8) & 0x07FF),352,1695) ;
     rcCommands.values.aileron  = (rcCommands.values.aileron  - 352) * 0.7446 + 1000;
@@ -294,7 +294,6 @@ void SBus(){
   if (Serial1.available() > 24){
     while(Serial1.available() > 0){
       inByte = Serial1.read();
-      ShowHex(inByte);
       switch (readState){
       case 0:
         if (inByte == 0x0f){

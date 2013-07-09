@@ -80,7 +80,7 @@ ISR(PCINT0_vect){
         timeDifference = currentTime - changeTime[k];//if so then calculate the pulse width
         if (900 < timeDifference && timeDifference < 2200){//check to see if it is a valid length
           rcCommands.standardRCBuffer[k] = (constrain((timeDifference - offset),1080,1920) - 1080) * 1.19 + 1000;
-          if (k != 2){ //for DSM2 fail safe - in loss of signal all channels stop except for the throttle
+          if (k != 2){ //fail safe - in loss of signal all channels stop except for the throttle
             newRC = true;
           }
           if (k == 2 && ((timeDifference ) < 1025)){//fail safe for futaba / DSMx
@@ -107,42 +107,33 @@ void FeedLine(){
 }
 
 void SBusParser(){
-  if (Serial1.available() > 24){
-    while(Serial1.available() > 0){
-      inByte = Serial1.read();
-      switch (readState){
-      case 0:
-        if (inByte != 0x0f){
-          while(Serial1.available() > 0){//read the contents of in buffer this should resync the transmission
-            inByte = Serial1.read();
-          }
-          return;
-        }
-        else{
-          bufferIndex = 0;
-          sBusData[bufferIndex] = inByte;
-          sBusData[24] = 0xff;
-          readState = 1;
-        }
-        break;
-      case 1:
-        bufferIndex ++;
+  while(Serial1.available() > 0){
+    inByte = Serial1.read();
+    switch (readState){
+    case 0:
+      if (inByte == 0x0F){
+        bufferIndex = 0;
         sBusData[bufferIndex] = inByte;
-        if (bufferIndex < 24 && Serial1.available() == 0){
-          readState = 0;
-        }
-        if (bufferIndex == 24){
-          readState = 0;
-          if (sBusData[0]==0x0f && sBusData[24] == 0x00){
-            newRC = true;
-          }
-        }
-        break;
+        sBusData[24] = 0xff;
+        readState = 1;
       }
-    }
-  }  
 
-  if (newRC == true){
+      break;
+    case 1:
+      bufferIndex ++;
+      sBusData[bufferIndex] = inByte;
+
+      if (bufferIndex == 24){
+        readState = 0;
+        if (sBusData[0]==0x0f && sBusData[24] == 0x00){
+          newRC = true;
+        }
+      }
+      break;
+    }
+  }
+
+  if (newData == true){
     //credit to the folks at multiWii for this sBus parsing algorithm
     rcCommands.values.aileron  = constrain(((sBusData[1]|sBusData[2]<< 8) & 0x07FF),352,1695) ;
     rcCommands.values.aileron  = (rcCommands.values.aileron  - 352) * 0.7446 + 1000;
@@ -166,7 +157,6 @@ void SBusParser(){
     if (sBusData[23] & (1<<3)) {
       failSafe = true;
     }
-
   }
 
 }
@@ -236,15 +226,17 @@ void DSMXParser(){
 }
 
 void DetectRC(){
-   readState = 0;
+  readState = 0;
   SBus();
 
   if (detected == true){
+    FrameCheck();
     return;
   }
   readState = 0;
   Spektrum();
   if (detected == true){
+    FrameCheck();
     return;
   }
   else{
@@ -259,6 +251,12 @@ void DetectRC(){
     delay(100);//wait for a few frames
     Center();
   } 
+
+
+
+}
+
+void FrameCheck(){//checks if serial RC was incorrectly detected
   newRC = false;
   timer = millis();
   while (newRC == false){
@@ -278,14 +276,11 @@ void DetectRC(){
       Center();
       timer = millis();
     }
-  }
-
-
+  } 
 }
 
 void SBus(){
 
-  
   Serial1.begin(100000);
   timer = millis();
   while (Serial1.available() == 0){
@@ -294,19 +289,15 @@ void SBus(){
       return;
     }
   }
-  delay(50);
+
+  delay(100);
   if (Serial1.available() > 24){
     while(Serial1.available() > 0){
       inByte = Serial1.read();
+      ShowHex(inByte);
       switch (readState){
       case 0:
-        if (inByte != 0x0f){
-          while(Serial1.available() > 0){//read the contents of in buffer this should resync the transmission
-            inByte = Serial1.read();
-          }
-          return;
-        }
-        else{
+        if (inByte == 0x0f){
           bufferIndex = 0;
           sBusData[bufferIndex] = inByte;
           sBusData[24] = 0xff;
@@ -316,9 +307,6 @@ void SBus(){
       case 1:
         bufferIndex ++;
         sBusData[bufferIndex] = inByte;
-        if (bufferIndex < 24 && Serial1.available() == 0){
-          readState = 0;
-        }
         if (bufferIndex == 24){
           readState = 0;
           if (sBusData[0]==0x0f && sBusData[24] == 0x00){
@@ -332,7 +320,6 @@ void SBus(){
   }  
 
 }
-
 void Spektrum(){
   Serial1.begin(115200);
   timer = millis();
@@ -350,6 +337,7 @@ void Spektrum(){
   rcType = DSMX;
   detected = true;
 }
+
 
 
 

@@ -34,7 +34,6 @@ ISR(PCINT0_vect){
   }
 }
 void FeedLine(){
-  //handles the serial RC
   switch(rcType){
   case 1:
     DSMXParser();
@@ -46,40 +45,31 @@ void FeedLine(){
 }
 
 void SBusParser(){
-  if (Serial1.available() > 24){
-    while(Serial1.available() > 0){
-      inByte = Serial1.read();
-      switch (readState){
-      case 0:
-        if (inByte != 0x0f){
-          while(Serial1.available() > 0){//read the contents of in buffer this should resync the transmission
-            inByte = Serial1.read();
-          }
-          return;
-        }
-        else{
-          bufferIndex = 0;
-          sBusData[bufferIndex] = inByte;
-          sBusData[24] = 0xff;
-          readState = 1;
-        }
-        break;
-      case 1:
-        bufferIndex ++;
+  while(Serial1.available() > 0){
+    inByte = Serial1.read();
+    switch (readState){
+    case 0:
+      if (inByte == 0x0F){
+        bufferIndex = 0;
         sBusData[bufferIndex] = inByte;
-        if (bufferIndex < 24 && Serial1.available() == 0){
-          readState = 0;
-        }
-        if (bufferIndex == 24){
-          readState = 0;
-          if (sBusData[0]==0x0f && sBusData[24] == 0x00){
-            newRC = true;
-          }
-        }
-        break;
+        sBusData[24] = 0xff;
+        readState = 1;
       }
+
+      break;
+    case 1:
+      bufferIndex ++;
+      sBusData[bufferIndex] = inByte;
+
+      if (bufferIndex == 24){
+        readState = 0;
+        if (sBusData[0]==0x0f && sBusData[24] == 0x00){
+          newRC = true;
+        }
+      }
+      break;
     }
-  }  
+  }
 
   if (newRC == true){
     //credit to the folks at multiWii for this sBus parsing algorithm
@@ -99,13 +89,6 @@ void SBusParser(){
     rcCommands.values.aux2  = (rcCommands.values.aux2  - 352) * 0.7446 + 1000;
     rcCommands.values.aux3  = constrain(((sBusData[10]>>5|sBusData[11]<<3) & 0x07FF),352,1695);
     rcCommands.values.aux3  = (rcCommands.values.aux3  - 352) * 0.7446 + 1000;
-    if (sBusData[23] & (1<<2)) {
-      failSafe = true;
-    }
-    if (sBusData[23] & (1<<3)) {
-      failSafe = true;
-    }
-
   }
 
 }
@@ -118,6 +101,7 @@ void DSMXParser(){
       bufferIndex = 0;
     }
     inByte = Serial1.read();
+
     frameTime = millis();
     byteCount++;
     if (byteCount > 2){
@@ -174,8 +158,9 @@ void DSMXParser(){
 
 }
 
+
 void DetectRC(){
-   readState = 0;
+  readState = 0;
   SBus();
 
   if (detected == true){
@@ -198,54 +183,26 @@ void DetectRC(){
     delay(100);//wait for a few frames
     Center();
   } 
-  newRC = false;
-  timer = millis();
-  while (newRC == false){
-    if (rcType == RC){
-      delay(100);
-    }
-    if (rcType != RC){
-      FeedLine();
-    }
-    if (millis() - timer > 1000){//in case it has incorrectly detected serial RC
-      rcType = RC;
-      DDRB &= 0xE0;
-      PORTB |= 0x1F;
-      PCMSK0 |= 0x1F;
-      PCICR |= 1<<0;
-      delay(100);//wait for a few frames
-      Center();
-      timer = millis();
-    }
-  }
-
-
 }
+
 
 void SBus(){
 
-  
   Serial1.begin(100000);
   timer = millis();
   while (Serial1.available() == 0){
-    Serial.println("SBUS wait");
     if (millis() - timer > 1000){
       return;
     }
   }
-  delay(50);
+
+  delay(100);
   if (Serial1.available() > 24){
     while(Serial1.available() > 0){
       inByte = Serial1.read();
       switch (readState){
       case 0:
-        if (inByte != 0x0f){
-          while(Serial1.available() > 0){//read the contents of in buffer this should resync the transmission
-            inByte = Serial1.read();
-          }
-          return;
-        }
-        else{
+        if (inByte == 0x0f){
           bufferIndex = 0;
           sBusData[bufferIndex] = inByte;
           sBusData[24] = 0xff;
@@ -255,9 +212,6 @@ void SBus(){
       case 1:
         bufferIndex ++;
         sBusData[bufferIndex] = inByte;
-        if (bufferIndex < 24 && Serial1.available() == 0){
-          readState = 0;
-        }
         if (bufferIndex == 24){
           readState = 0;
           if (sBusData[0]==0x0f && sBusData[24] == 0x00){
@@ -276,7 +230,6 @@ void Spektrum(){
   Serial1.begin(115200);
   timer = millis();
   while (Serial1.available() == 0){
-    Serial.println("Spektrum wait");
     if (millis() - timer > 1000){
       return;
     }
@@ -288,7 +241,27 @@ void Spektrum(){
   frameTime = millis();
   rcType = DSMX;
   detected = true;
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

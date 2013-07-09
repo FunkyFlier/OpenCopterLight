@@ -134,14 +134,6 @@ void setup()
   I2c.begin();
   I2c.setSpeed(1);
   DetectRC();
-  if (rcType == RC){
-    DDRB &= 0xE0;
-    PORTB |= 0x1F;
-    PCMSK0 |= 0x1F;
-    PCICR |= 1<<0;
-    delay(100);//wait for a few frames
-    Center();
-  } 
   AccInit();
   pinMode(ledPin, OUTPUT);
 

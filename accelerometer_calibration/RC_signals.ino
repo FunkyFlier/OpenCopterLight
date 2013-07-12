@@ -1,4 +1,3 @@
-
 void Center(){
   //take the aileron channel and centers the channels to 1500us
   while (newRC == false){
@@ -45,10 +44,14 @@ void FeedLine(){
     break;
   }
 }
-
 void SBusParser(){
   while(Serial1.available() > 0){
+    if (millis() - frameTime > 8){
+      //bufferIndex = 0;
+      readState = 0;
+    }
     inByte = Serial1.read();
+    frameTime = millis();
     switch (readState){
     case 0:
       if (inByte == 0x0F){
@@ -67,37 +70,35 @@ void SBusParser(){
         readState = 0;
         if (sBusData[0]==0x0f && sBusData[24] == 0x00){
           newRC = true;
+          rcCommands.values.aileron  = constrain(((sBusData[1]|sBusData[2]<< 8) & 0x07FF),352,1695) ;
+          rcCommands.values.aileron  = (rcCommands.values.aileron  - 352) * 0.7446 + 1000;
+          rcCommands.values.elevator  = constrain(((sBusData[2]>>3|sBusData[3]<<5) & 0x07FF),352,1695);
+          rcCommands.values.elevator  = (rcCommands.values.elevator  - 352) * 0.7446 + 1000;
+          rcCommands.values.throttle  = constrain(((sBusData[3]>>6|sBusData[4]<<2|sBusData[5]<<10) & 0x07FF),352,1695);
+          rcCommands.values.throttle  = (rcCommands.values.throttle  - 352) * 0.7446 + 1000;
+          rcCommands.values.rudder  = constrain(((sBusData[5]>>1|sBusData[6]<<7) & 0x07FF),352,1695);
+          rcCommands.values.rudder  = (rcCommands.values.rudder  - 352) * 0.7446 + 1000;
+          rcCommands.values.gear = constrain(((sBusData[6]>>4|sBusData[7]<<4) & 0x07FF),352,1695);
+          rcCommands.values.gear  = (rcCommands.values.gear  - 352) * 0.7446 + 1000;
+          rcCommands.values.aux1 = constrain(((sBusData[7]>>7|sBusData[8]<<1|sBusData[9]<<9) & 0x07FF),352,1695);
+          rcCommands.values.aux1  = (rcCommands.values.aux1  - 352) * 0.7446 + 1000;
+          rcCommands.values.aux2  = constrain(((sBusData[9]>>2|sBusData[10]<<6) & 0x07FF),352,1695);
+          rcCommands.values.aux2  = (rcCommands.values.aux2  - 352) * 0.7446 + 1000;
+          rcCommands.values.aux3  = constrain(((sBusData[10]>>5|sBusData[11]<<3) & 0x07FF),352,1695);
+          rcCommands.values.aux3  = (rcCommands.values.aux3  - 352) * 0.7446 + 1000;
+          if (sBusData[23] & (1<<2)) {
+            failSafe = true;
+
+          }
+          if (sBusData[23] & (1<<3)) {
+            failSafe = true;
+          }
         }
       }
       break;
     }
   }
 
-  if (newRC == true){
-    //credit to the folks at multiWii for this sBus parsing algorithm
-    rcCommands.values.aileron  = constrain(((sBusData[1]|sBusData[2]<< 8) & 0x07FF),352,1695) ;
-    rcCommands.values.aileron  = (rcCommands.values.aileron  - 352) * 0.7446 + 1000;
-    rcCommands.values.elevator  = constrain(((sBusData[2]>>3|sBusData[3]<<5) & 0x07FF),352,1695);
-    rcCommands.values.elevator  = (rcCommands.values.elevator  - 352) * 0.7446 + 1000;
-    rcCommands.values.throttle  = constrain(((sBusData[3]>>6|sBusData[4]<<2|sBusData[5]<<10) & 0x07FF),352,1695);
-    rcCommands.values.throttle  = (rcCommands.values.throttle  - 352) * 0.7446 + 1000;
-    rcCommands.values.rudder  = constrain(((sBusData[5]>>1|sBusData[6]<<7) & 0x07FF),352,1695);
-    rcCommands.values.rudder  = (rcCommands.values.rudder  - 352) * 0.7446 + 1000;
-    rcCommands.values.gear = constrain(((sBusData[6]>>4|sBusData[7]<<4) & 0x07FF),352,1695);
-    rcCommands.values.gear  = (rcCommands.values.gear  - 352) * 0.7446 + 1000;
-    rcCommands.values.aux1 = constrain(((sBusData[7]>>7|sBusData[8]<<1|sBusData[9]<<9) & 0x07FF),352,1695);
-    rcCommands.values.aux1  = (rcCommands.values.aux1  - 352) * 0.7446 + 1000;
-    rcCommands.values.aux2  = constrain(((sBusData[9]>>2|sBusData[10]<<6) & 0x07FF),352,1695);
-    rcCommands.values.aux2  = (rcCommands.values.aux2  - 352) * 0.7446 + 1000;
-    rcCommands.values.aux3  = constrain(((sBusData[10]>>5|sBusData[11]<<3) & 0x07FF),352,1695);
-    rcCommands.values.aux3  = (rcCommands.values.aux3  - 352) * 0.7446 + 1000;
-    if (sBusData[23] & (1<<2)) {
-      failSafe = true;
-    }
-    if (sBusData[23] & (1<<3)) {
-      failSafe = true;
-    }
-  }
 
 }
 
@@ -219,6 +220,7 @@ void FrameCheck(){//checks if serial RC was incorrectly detected
       timer = millis();
     }
   } 
+  newRC = false;
 
 }
 
@@ -226,42 +228,39 @@ void SBus(){
 
   Serial1.begin(100000);
   timer = millis();
-  while(Serial1.available() > 0){
-    Serial1.read();
-  }
+
   while (Serial1.available() == 0){
     if (millis() - timer > 1000){
       return;
     }
   }
 
-  delay(10);
-  if (Serial1.available() > 24){
-    while(Serial1.available() > 0){
-      inByte = Serial1.read();
-      switch (readState){
-      case 0:
-        if (inByte == 0x0f){
-          bufferIndex = 0;
-          sBusData[bufferIndex] = inByte;
-          sBusData[24] = 0xff;
-          readState = 1;
-        }
-        break;
-      case 1:
-        bufferIndex ++;
+  delay(20);
+  while(Serial1.available() > 0){
+    inByte = Serial1.read();
+    switch (readState){
+    case 0:
+      if (inByte == 0x0f){
+        bufferIndex = 0;
         sBusData[bufferIndex] = inByte;
-        if (bufferIndex == 24){
-          readState = 0;
-          if (sBusData[0]==0x0f && sBusData[24] == 0x00){
-            rcType = SBUS;
-            detected = true;
-          }
-        }
-        break;
+        sBusData[24] = 0xff;
+        readState = 1;
       }
+      break;
+    case 1:
+      bufferIndex ++;
+      sBusData[bufferIndex] = inByte;
+      if (bufferIndex == 24){
+        readState = 0;
+        if (sBusData[0]==0x0f && sBusData[24] == 0x00){
+          rcType = SBUS;
+          detected = true;
+        }
+      }
+      break;
     }
-  }  
+  }
+  frameTime = millis();
 }
 void Spektrum(){
   Serial1.begin(115200);
@@ -279,22 +278,4 @@ void Spektrum(){
   rcType = DSMX;
   detected = true;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

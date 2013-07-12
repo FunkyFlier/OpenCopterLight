@@ -191,7 +191,6 @@ void setup(){
   digitalWrite(GREEN,HIGH);
   failSafeTimer = millis();
   timer = micros();
-
 }
 
 void loop(){

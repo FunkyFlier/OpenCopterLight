@@ -28,6 +28,7 @@
 //*****************************************************************************************************************//
 //CALIBRATION OF THE ELECTRONIC SPEED CONTROLLERS AND THE ACCELEROMETER MUST BE COMPLETED BEFORE ATTEMPTING TO FLY!//
 //*****************************************************************************************************************//
+#include <EEPROM.h>
 #include <I2C.h>
 /*
 http://dsscircuits.com/articles/arduino-i2c-master-library.html
@@ -35,16 +36,9 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 #include "openIMUL.h"
 #include "MPIDL.h"//the L is for local in case there is already a library by that name
 #include "openCopterLight.h"
+#include <Streaming.h>
 
 
-//accelerometer calibration values
-//this is where the values from the accelerometer calibration sketch belong
-#define ACC_OFFSET_X 0.3995290
-#define ACC_OFFSET_Y 1.5394440
-#define ACC_OFFSET_Z -1.0840128
-#define ACC_SCALE_X 0.0381360
-#define ACC_SCALE_Y 0.0385831
-#define ACC_SCALE_Z 0.0399804 
 
 //sensor data 
 typedef union{
@@ -59,6 +53,22 @@ typedef union{
 Sensor_t;
 Sensor_t gyro;
 Sensor_t acc;
+
+typedef union{
+  struct{
+    float ACC_OFFSET_X;
+    float ACC_OFFSET_Y;
+    float ACC_OFFSET_Z;
+    float ACC_SCALE_X;
+    float ACC_SCALE_Y;
+    float ACC_SCALE_Z;
+  }
+  v;
+  uint8_t buffer[24];
+}
+Calibration_t;
+
+Calibration_t accCal;
 
 //RC signal variables
 uint8_t rcType,readState,inByte,byteCount,channelNumber;
@@ -125,28 +135,38 @@ float adjustmentZ;
 //gains for the PID loops
 float kp_r_p = 0.65;
 float ki_r_p = 0.05;
-float kd_r_p = 0.01423;
-float nPitch = 19.5924;
+//float kd_r_p = 0.01423;
+//float nPitch = 19.5924;
+float kd_r_p = 0;
+float nPitch = 0;
 
 float kp_r_r = 0.65;
 float ki_r_r = 0.05;
-float kd_r_r = 0.01423;
-float nRoll = 19.5924;
+//float kd_r_r = 0.01423;
+//float nRoll = 19.5924;
+float kd_r_r = 0;
+float nRoll = 0;
 
-float kp_r_y = 3.0;
+float kp_r_y = 3;
 float ki_r_y = 0.22747;
-float kd_r_y = -0.42597;
-float nYaw = 4.4174;
+//float kd_r_y = -0.42597;
+//float nYaw = 4.4174;
+float kd_r_y = 0;
+float nYaw = 0;
 
 float kp_a_p = 4.6527;
 float ki_a_p = 0.2005;
-float kd_a_p = 0.11256;
-float nPitchA = 47.9596;
+//float kd_a_p = 0.11256;
+//float nPitchA = 47.9596;
+float kd_a_p = 0;
+float nPitchA = 0;
 
 float kp_a_r = 4.6527;
 float ki_a_r = 0.2005;
-float kd_a_r = 0.11256;
-float nRollA = 47.9596;
+//float kd_a_r = 0.11256;
+//float nRollA = 47.9596;
+float kd_a_r = 0;
+float nRollA = 0;
 
 //general purpose index variables
 uint16_t i;
@@ -176,6 +196,7 @@ void setup(){
   pinMode(GREEN,OUTPUT);
   digitalWrite(YELLOW,HIGH);
   digitalWrite(RED,HIGH);
+  GetCalibrationValues();
   MotorInit();//start the motor signals
   DetectRC();
   Arm();//move the rudder to the right to begin calibration
@@ -183,7 +204,6 @@ void setup(){
   I2c.setSpeed(1);
   GyroInit();
   AccInit();
-  LevelAngles();
   Reset();
   SafetyCheck();
   digitalWrite(YELLOW,LOW);
@@ -218,6 +238,7 @@ void loop(){
     FeedLine();
   }
   if (newRC == true){
+    Serial<<imu.pitch<<","<<imu.roll<<"\r\n";
     newRC = false;
     failSafeTimer = millis();
     ProcessChannels();

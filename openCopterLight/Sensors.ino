@@ -1,20 +1,22 @@
-void LevelAngles(){
-  timer = micros();
-  delay(5);
-  //first run a number of samples to drive the complimentary filter's error to zero
-  for( int l = 0; l < 250; l++){//run the IMU so that the error can be driven to zero - keep it still for this
-    dt = ((micros() - timer) / 1000000.0);
-    timer = micros();
-    GetGyro();
-    GetAcc();
-    imu.IMUupdate();
-    delay(5);
+void GetCalibrationValues(){
+  inByte = EEPROM.read(0);
+  if (inByte != 0xAA){
+    while(1){//hold here because the device is not calibrated 
+      digitalWrite(GREEN,HIGH);
+      digitalWrite(YELLOW,HIGH);
+      digitalWrite(RED,HIGH);
+      delay(500);
+      digitalWrite(GREEN,LOW);
+      digitalWrite(YELLOW,LOW);
+      digitalWrite(RED,LOW);
+      delay(500);
+    }
   }
-  //get the pitch and roll then calculate the offset
-  imu.GetEuler();
-  imu.pitchOffset = imu.pitch;
-  imu.rollOffset = imu.roll;
+  for (uint8_t k = 1; k < 25; k++){
+    accCal.buffer[k-1] = EEPROM.read(k);
+  }
 }
+
 
 
 void AccInit(){
@@ -56,20 +58,20 @@ void GyroInit(){
   gyroSumX = 0;
   gyroSumY = 0;
   gyroSumZ = 0;
-  for (j = 0; j < 250; j ++){
+  for (j = 0; j < 100; j ++){
     GetGyro();
     delay(3);
   }
-  for (j = 0; j < 250; j ++){
+  for (j = 0; j < 100; j ++){
     GetGyro();
     gyroSumX += gyro.v.x;
     gyroSumY += gyro.v.y;
     gyroSumZ += gyro.v.z;
     delay(3);
   }
-  offsetX = gyroSumX / 250.0;
-  offsetY = gyroSumY / 250.0;
-  offsetZ = gyroSumZ / 250.0;
+  offsetX = gyroSumX / 100.0;
+  offsetY = gyroSumY / 100.0;
+  offsetZ = gyroSumZ / 100.0;
 
 }
 
@@ -111,9 +113,9 @@ void GetAcc(){
   //notice the sign negation. The axes must be in North East Down convention
   //however gravity is measured as negative in that convention by the accelerometer
   //the complimentary filter expects gravity to be positive in the North East Down convention
-  accToFilterX = -1.0 * ((smoothAccX - ACC_OFFSET_X) * ACC_SCALE_X);//if the value from the smoothing filter is sent it will not work when the algorithm normalizes the vector
-  accToFilterY = -1.0 * ((smoothAccY - ACC_OFFSET_Y) * ACC_SCALE_Y);
-  accToFilterZ = -1.0 * ((smoothAccZ - ACC_OFFSET_Z) * ACC_SCALE_Z);
+  accToFilterX = -1.0 * ((smoothAccX - accCal.v.ACC_OFFSET_X) * accCal.v.ACC_SCALE_X);//if the value from the smoothing filter is sent it will not work when the algorithm normalizes the vector
+  accToFilterY = -1.0 * ((smoothAccY - accCal.v.ACC_OFFSET_Y) * accCal.v.ACC_SCALE_Y);
+  accToFilterZ = -1.0 * ((smoothAccZ - accCal.v.ACC_OFFSET_Z) * accCal.v.ACC_SCALE_Z);
 
 
 }

@@ -16,6 +16,7 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 /*
 http://arduiniana.org/libraries/streaming/
  */
+#include <EEPROM.h>
 
 
 //acc defines - Analog Devices ADXL345
@@ -68,6 +69,20 @@ typedef union{
 Sensor_t;
 
 Sensor_t acc;
+
+typedef union{
+  struct{
+    float ACC_OFFSET_X;
+    float ACC_OFFSET_Y;
+    float ACC_OFFSET_Z;
+    float ACC_SCALE_X;
+    float ACC_SCALE_Y;
+    float ACC_SCALE_Z;
+  }values;
+  uint8_t buffer[24];
+}Calibration_t;
+
+Calibration_t accCal;
 
 //RC vars
 
@@ -399,15 +414,20 @@ void calibrate_model() {
     reset_calibration_matrices();
 
   }
-  Serial<<"\r\n#define ACC_OFFSET_X "<<_FLOAT(beta[0],7)<<"\r\n#define ACC_OFFSET_Y "<<_FLOAT(beta[1],7)<<"\r\n#define ACC_OFFSET_Z "<<_FLOAT(beta[2],7)
-    <<"\r\n#define ACC_SCALE_X "<<_FLOAT((beta[3]*9.8),7)<<"\r\n#define ACC_SCALE_Y "<<_FLOAT((beta[4]*9.8),7)<<"\r\n#define ACC_SCALE_Z "<<_FLOAT((beta[5]*9.8),7)<<"\r\n";
+  Serial<<"\r\nACC_OFFSET_X "<<_FLOAT(beta[0],7)<<"\r\nACC_OFFSET_Y "<<_FLOAT(beta[1],7)<<"\r\nACC_OFFSET_Z "<<_FLOAT(beta[2],7)
+    <<"\r\nACC_SCALE_X "<<_FLOAT((beta[3]*9.8),7)<<"\r\nACC_SCALE_Y "<<_FLOAT((beta[4]*9.8),7)<<"\r\nACC_SCALE_Z "<<_FLOAT((beta[5]*9.8),7)<<"\r\n";
+  accCal.values.ACC_OFFSET_X = beta[0];
+  accCal.values.ACC_OFFSET_Y = beta[1];
+  accCal.values.ACC_OFFSET_Z = beta[2];
+  accCal.values.ACC_SCALE_X = beta[3]*9.8;
+  accCal.values.ACC_SCALE_Y = beta[4]*9.8;
+  accCal.values.ACC_SCALE_Z = beta[5]*9.8;
+  
+  for (uint8_t k = 1; k < 25; k++){
+    EEPROM.write(k,accCal.buffer[k-1]);
+  }
+  EEPROM.write(0,0xAA);
 
-  /*Serial.print("\n");
-   for(i=0;i<6;++i) {
-   Serial.print(beta[i], 7);
-   Serial.print(" ");
-   }
-   Serial.println();*/
 }
 
 

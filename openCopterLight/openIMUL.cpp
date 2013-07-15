@@ -29,9 +29,6 @@ openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *a
   beta1 = betaDef1;
   beta2 = betaDef2;
 
-  pitchOffset = 0;
-  rollOffset = 0;
-
   q0 = 1;
   q1 = 0;
   q2 = 0;
@@ -65,9 +62,6 @@ openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *a
   beta1 = betaDef1;
   beta2 = betaDef2;
 
-  pitchOffset = 0;
-  rollOffset = 0;
-
   q0 = 1;
   q1 = 0;
   q2 = 0;
@@ -87,9 +81,6 @@ openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *a
   dt = G_Dt;
 
   beta1 = betaDef1;
-
-  pitchOffset = 0;
-  rollOffset = 0;
 
   q0 = 1;
   q1 = 0;
@@ -366,8 +357,8 @@ void openIMU::GetEuler(void){
   //this function provied the Euler angles
   //Euler angles are easier to incorporte into PID control than the quaternion
 
-  roll= ToDeg(FastAtan2(2 * (q0 * q1 + q2 * q3),1 - 2 * (q1 * q1 + q2 * q2))) - rollOffset;
-  pitch = ToDeg(asin(2 * (q0 * q2 - q3 * q1))) - pitchOffset;
+  roll= ToDeg(FastAtan2(2 * (q0 * q1 + q2 * q3),1 - 2 * (q1 * q1 + q2 * q2)));
+  pitch = ToDeg(asin(2 * (q0 * q2 - q3 * q1)));
   yaw = ToDeg(FastAtan2(2 * (q0 * q3 + q1 * q2) , 1 - 2* (q2 * q2 + q3 * q3)));
 
   if (yaw < 0){

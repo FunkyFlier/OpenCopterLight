@@ -36,7 +36,6 @@ public:
   void Rotate(void);
   float q0,q1,q2,q3;
   float pitch,roll,yaw,altitude;
-  float pitchOffset,rollOffset;
 private:
   float *gx;
   float *gy;

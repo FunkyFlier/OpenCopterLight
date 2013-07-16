@@ -32,10 +32,11 @@ void MPID::calculate(){
   if (iError < integralLimitLow){
     iError = integralLimitLow;
   }
+  //uncomment these lines to switch from PI to PID controller 
+  //dError = dErrorPrev - *fc * *dt * dErrorPrev + *kd * *fc * (error - prevError);
 
-  dError = dErrorPrev - *fc * *dt * dErrorPrev + *kd * *fc * (error - prevError);
-
-  *adjustment = *kp * error  + iError +  dError;
+  //*adjustment = *kp * error  + iError +  dError;
+  *adjustment = *kp * error  + iError;
 
   if (*adjustment > outputLimitHigh){
     *adjustment  = outputLimitHigh;

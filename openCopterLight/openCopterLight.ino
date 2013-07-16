@@ -36,7 +36,6 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 #include "openIMUL.h"
 #include "MPIDL.h"//the L is for local in case there is already a library by that name
 #include "openCopterLight.h"
-#include <Streaming.h>
 
 
 
@@ -133,38 +132,28 @@ float adjustmentX;
 float adjustmentY;
 float adjustmentZ; 
 //gains for the PID loops
-float kp_r_p = 0.65;
-float ki_r_p = 0.05;
-//float kd_r_p = 0.01423;
-//float nPitch = 19.5924;
+float kp_r_p = 1.0;
+float ki_r_p = 0.15;
 float kd_r_p = 0;
 float nPitch = 0;
 
-float kp_r_r = 0.65;
-float ki_r_r = 0.05;
-//float kd_r_r = 0.01423;
-//float nRoll = 19.5924;
+float kp_r_r = 1.0;
+float ki_r_r = 0.15;
 float kd_r_r = 0;
 float nRoll = 0;
 
-float kp_r_y = 3;
-float ki_r_y = 0.22747;
-//float kd_r_y = -0.42597;
-//float nYaw = 4.4174;
+float kp_r_y = 4;
+float ki_r_y = 0.5;
 float kd_r_y = 0;
 float nYaw = 0;
 
 float kp_a_p = 4.6527;
 float ki_a_p = 0.2005;
-//float kd_a_p = 0.11256;
-//float nPitchA = 47.9596;
 float kd_a_p = 0;
 float nPitchA = 0;
 
 float kp_a_r = 4.6527;
 float ki_a_r = 0.2005;
-//float kd_a_r = 0.11256;
-//float nRollA = 47.9596;
 float kd_a_r = 0;
 float nRollA = 0;
 
@@ -238,7 +227,6 @@ void loop(){
     FeedLine();
   }
   if (newRC == true){
-    Serial<<imu.pitch<<","<<imu.roll<<"\r\n";
     newRC = false;
     failSafeTimer = millis();
     ProcessChannels();

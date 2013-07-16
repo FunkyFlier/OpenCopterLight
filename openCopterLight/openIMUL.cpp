@@ -210,10 +210,10 @@ void openIMU::IMUupdate() {
 
   magnitude = sqrt(squareSum);
 
-  //make sure that the total sum of gravity is 1 +/- .15gs
+  //make sure that the total sum of gravity is 1 +/- .2gs
   //this filter works based on the assumption that only gravity is being detected
   
-  if ((magnitude < 11.27) && (magnitude > 8.33)){
+  if ((magnitude < 11.76) && (magnitude > 7.84)){
     // Normalise accelerometer measurement
     recipNorm = InvSqrt(squareSum);
     *ax *= recipNorm;
@@ -278,7 +278,10 @@ void openIMU::AHRSupdate() {
   squareSum = *ax * *ax + *ay * *ay + *az * *az;
 
   magnitude = sqrt(squareSum);
-  if ((magnitude < 11.27) && (magnitude > 8.33)){
+  //make sure that the total sum of gravity is 1 +/- .2gs
+  //this filter works based on the assumption that only gravity is being detected
+  
+  if ((magnitude < 11.76) && (magnitude > 7.84)){
     // Normalise accelerometer measurement
     recipNorm = InvSqrt(magnitude);
     *ax *= recipNorm;

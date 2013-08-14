@@ -21,7 +21,6 @@
  
  Gyro must be in RAD/s
  Sensors must be in the North East Down convention
- This example code will only work on the MEGA
  To use on a different arduino change the slave select defines or use digitalWrite 
  */
  

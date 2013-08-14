@@ -35,8 +35,8 @@ void AccInit(){
     acc.buffer[i] = I2c.receive();
   }
   smoothAccX = (float)acc.v.x;
-  smoothAccY = (float)acc.v.y;
-  smoothAccZ = (float)acc.v.z;
+  smoothAccY = (float)(-1.0 * acc.v.y);
+  smoothAccZ = (float)(-1.0 * acc.v.z);;
 }
 
 void GyroInit(){

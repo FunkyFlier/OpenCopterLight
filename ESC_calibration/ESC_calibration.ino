@@ -1,6 +1,6 @@
 
 //motor defines
-#define FREQ 400
+#define FREQ 190
 #define PRESCALE 8
 #define PERIOD ((F_CPU/PRESCALE/FREQ) - 1)
 

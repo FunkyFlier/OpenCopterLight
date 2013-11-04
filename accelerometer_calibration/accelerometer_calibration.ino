@@ -20,7 +20,7 @@ http://arduiniana.org/libraries/streaming/
 
 
 //acc defines - Analog Devices ADXL345
-#define ADXL435_ADDR 0x53
+#define ADXL345_ADDR 0x53
 #define BW_RATE 0x2C
 #define POWER_CTL 0x2D
 #define DATA_FORMAT 0x31
@@ -78,9 +78,11 @@ typedef union{
     float ACC_SCALE_X;
     float ACC_SCALE_Y;
     float ACC_SCALE_Z;
-  }values;
+  }
+  values;
   uint8_t buffer[24];
-}Calibration_t;
+}
+Calibration_t;
 
 Calibration_t accCal;
 
@@ -191,6 +193,11 @@ void loop(){
     while(Serial1.available() > 0){//flush the port to get the newest frame
       Serial1.read();
     }
+    while (rcCommands.values.rudder > 1700){
+      if (rcType != RC){
+        FeedLine();
+      }  
+    }
   }
 
   if (calculate == true) {
@@ -200,6 +207,11 @@ void loop(){
     calibrate_model();
     while(Serial1.available() > 0){//flush the port to get the newest frame
       Serial1.read();
+    }
+    while (rcCommands.values.rudder < 1200){
+      if (rcType != RC){
+        FeedLine();
+      }  
     }
   }
 
@@ -217,11 +229,11 @@ void take_sample(int* sample_out) {
     //Make all variables longs because we will do some aritmetic that 
     // will overflow an int.
     long sum[] = {
-      0,0,0                            };
+      0,0,0                                    };
     long sum_squares[] = {
-      0,0,0                            };
+      0,0,0                                    };
     long variance[] = {
-      0,0,0                            };
+      0,0,0                                    };
     long x,y,z;
     for(i=0;i< (1<<first_pass_size);++i) {
 
@@ -422,13 +434,15 @@ void calibrate_model() {
   accCal.values.ACC_SCALE_X = beta[3]*9.8;
   accCal.values.ACC_SCALE_Y = beta[4]*9.8;
   accCal.values.ACC_SCALE_Z = beta[5]*9.8;
-  
+
   for (uint8_t k = 1; k < 25; k++){
     EEPROM.write(k,accCal.buffer[k-1]);
   }
   EEPROM.write(0,0xAA);
 
 }
+
+
 
 
 

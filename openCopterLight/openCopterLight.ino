@@ -23,7 +23,7 @@
  Sensors must be in the North East Down convention
  To use on a different arduino change the slave select defines or use digitalWrite 
  */
- 
+
 //*****************************************************************************************************************//
 //CALIBRATION OF THE ELECTRONIC SPEED CONTROLLERS AND THE ACCELEROMETER MUST BE COMPLETED BEFORE ATTEMPTING TO FLY!//
 //*****************************************************************************************************************//
@@ -35,8 +35,7 @@ http://dsscircuits.com/articles/arduino-i2c-master-library.html
 #include "openIMUL.h"
 #include "MPIDL.h"//the L is for local in case there is already a library by that name
 #include "openCopterLight.h"
-
-
+#include <Streaming.h>
 
 //sensor data 
 typedef union{
@@ -114,7 +113,7 @@ float radianGyroX,radianGyroY,radianGyroZ;
 float degreeGyroX,degreeGyroY,degreeGyroZ;
 float smoothAccX,smoothAccY,smoothAccZ;
 float accToFilterX,accToFilterY,accToFilterZ;
-float dt;
+//float dt;
 
 //control related vars
 boolean integrate = false;
@@ -130,37 +129,65 @@ float rateSetPointZ;
 float adjustmentX;
 float adjustmentY;
 float adjustmentZ; 
-//gains for the PID loops
-float kp_r_p = 1.0;
-float ki_r_p = 0.15;
-float kd_r_p = 0;
-float nPitch = 0;
 
-float kp_r_r = 1.0;
-float ki_r_r = 0.15;
-float kd_r_r = 0;
-float nRoll = 0;
+float kp_r_p = 0.75;
+float ki_r_p = 5.281690141;
+float kd_r_p = 0.026625;
+float nPitch = 50;
 
-float kp_r_y = 4;
+float kp_r_r = 0.75;
+float ki_r_r = 5.281690141;
+float kd_r_r = 0.026625;
+float nRoll = 50;
+
+float kp_r_y = 2;
+float ki_r_y = 0.75;
+float kd_r_y = 0.05;
+float nYaw = 35;
+
+float kp_a_p = 3.5;
+float ki_a_p = 0;
+float kd_a_p = 0.01;
+float nPitchA = 50;
+
+float kp_a_r = 3.5;
+float ki_a_r = 0;
+float kd_a_r = 0.01;
+float nRollA = 50;
+
+/*float kp_r_p = 0.60;
+float ki_r_p = 0.05;
+float kd_r_p = 0.01;
+float nPitch = 5;
+
+float kp_r_r = 0.60;
+float ki_r_r = 0.05;
+float kd_r_r = 0.01;
+float nRoll = 5;
+
+
+float kp_r_y = 2.5;
 float ki_r_y = 0.5;
-float kd_r_y = 0;
-float nYaw = 0;
+float kd_r_y = 0.05;
+float nYaw = 5;
 
-float kp_a_p = 4.6527;
-float ki_a_p = 0.2005;
-float kd_a_p = 0;
-float nPitchA = 0;
+float kp_a_p = 4.25;
+float ki_a_p = 0.1;
+float kd_a_p = 0.01;
+float nPitchA = 5;
 
-float kp_a_r = 4.6527;
-float ki_a_r = 0.2005;
-float kd_a_r = 0;
-float nRollA = 0;
+float kp_a_r = 4.25;
+float ki_a_r = 0.1;
+float kd_a_r = 0.01;
+float nRollA = 5;*/
 
 //general purpose index variables
 uint16_t i;
 uint16_t j;
 uint8_t k;
 uint32_t timer;
+
+float dt;
 
 //set up the attitude estimator 
 openIMU imu(&radianGyroX,&radianGyroY,&radianGyroZ,&accToFilterX,&accToFilterY,&accToFilterZ,&dt);
@@ -171,11 +198,16 @@ MPID PitchRate(&rateSetPointY,&degreeGyroY,&adjustmentY,&integrate,&kp_r_p,&ki_r
 MPID RollRate(&rateSetPointX,&degreeGyroX,&adjustmentX,&integrate,&kp_r_r,&ki_r_r,&kd_r_r,&nRoll,&dt,500,500);
 MPID YawRate(&rateSetPointZ,&degreeGyroZ,&adjustmentZ,&integrate,&kp_r_y,&ki_r_y,&kd_r_y,&nYaw,&dt,500,500);
 
+boolean watchDogStartCount = false;
+uint8_t RCFailSafeCounter = 0, watchDogFailSafeCounter = 0;
+
+
 //saftey related variables
 boolean failSafe = false;
 boolean hold = true;
 boolean toggle;
-long failSafeTimer;
+
+long printTimer;
 
 void setup(){
   Serial.begin(115200);
@@ -186,7 +218,18 @@ void setup(){
   digitalWrite(RED,HIGH);
   GetCalibrationValues();
   MotorInit();//start the motor signals
-  DetectRC();
+  //DetectRC();
+  rcType = RC;
+  if (rcType == RC){
+    DDRB &= 0xE0;
+    PORTB |= 0x1F;
+    PCMSK0 |= 0x1F;
+    PCICR |= 1<<0;
+    delay(100);//wait for a few frames
+    Center();
+  } 
+  Serial1.begin(115200);
+  
   Arm();//move the rudder to the right to begin calibration
   I2c.begin();
   I2c.setSpeed(1);
@@ -197,12 +240,16 @@ void setup(){
   digitalWrite(YELLOW,LOW);
   digitalWrite(RED,HIGH);
   digitalWrite(GREEN,HIGH);
-  failSafeTimer = millis();
+
+  ISRConfig();
   timer = micros();
+  watchDogStartCount = true;
+  printTimer = millis();
 }
 
 void loop(){
-  if (micros() - timer > 2500){//~400 hz  
+
+  if (micros() - timer > 5262){//~190 hz  
     dt = ((micros() - timer) / 1000000.0);
     timer = micros();
     GetGyro();
@@ -221,42 +268,50 @@ void loop(){
     Rate();
     MotorHandler();
   }
-
   if (rcType != RC){
     FeedLine();
   }
   if (newRC == true){
     newRC = false;
-    failSafeTimer = millis();
     ProcessChannels();
+    RCFailSafeCounter = 0;
+    //Serial1<<millis()<<","<<rollSetPoint<<","<<imu.roll<<","<<rateSetPointX<<","<<degreeGyroX<<"\r\n";
+    //Serial1<<millis()<<","<<rateSetPointX<<","<<degreeGyroX<<"\r\n";
+    //Serial<<imu.pitch<<","<<imu.roll<<"\r\n";
   }  
-  if (millis() - failSafeTimer > 1000){
-    failSafe = true;
+  if ((millis() - printTimer >= 50) && rcCommands.values.throttle > 1100){
+    printTimer = millis();
+    Serial1<<printTimer<<","<<rollSetPoint<<","<<imu.roll<<","<<rateSetPointX<<","<<degreeGyroX<<"\r\n";
+    //Serial<<degreeGyroX<<","<<degreeGyroY<<","<<degreeGyroZ<<"\r\n";
   }
-  if (failSafe == true ){
-    Motor1WriteMicros(1000);//set the output compare value
+
+  if (RCFailSafeCounter >= 190 || failSafe == true ){
+    TIMSK4 = (0<<OCIE4A);
+    Motor1WriteMicros(1000);
     Motor2WriteMicros(1000);
     Motor3WriteMicros(1000);
     Motor4WriteMicros(1000);
     digitalWrite(GREEN,LOW);
     while(1){
       FeedLine();
-      digitalWrite(RED,HIGH);
+      digitalWrite(YELLOW,HIGH);
       delay(500);
-      digitalWrite(RED,LOW);
+      digitalWrite(YELLOW,LOW);
       delay(500);
     }
   }
+  watchDogFailSafeCounter = 0;
 }
 
 //simple low pass filter
 void Smoothing(int16_t *raw, float *smooth){
-  *smooth = (*raw * (0.10)) + (*smooth * 0.90);
+  *smooth = (*raw * (0.15)) + (*smooth * 0.85);
 }
 //mapping function
 void MapVar (uint16_t *x, float *y, float in_min, float in_max, float out_min, float out_max){
   *y = (*x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
 
 
 

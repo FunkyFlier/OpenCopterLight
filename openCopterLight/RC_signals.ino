@@ -33,15 +33,15 @@ void ProcessChannels(){
       rateSetPointY = -600.0;
     }
     //dead zone
-    if (rateSetPointY < 2 && rateSetPointY > -2){
+    if (rateSetPointY < 7 && rateSetPointY > -7){
       rateSetPointY= 0; 
     }  
-    if (rateSetPointX < 2 && rateSetPointX > -2){
+    if (rateSetPointX < 7 && rateSetPointX > -7){
       rateSetPointX = 0; 
     }      
   }
   //dead zone
-  if (rateSetPointZ < 2 && rateSetPointZ > -2){
+  if (rateSetPointZ < 7 && rateSetPointZ > -7){
     rateSetPointZ = 0;
   }
   //throttle check

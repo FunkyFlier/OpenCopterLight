@@ -1,6 +1,6 @@
 #include "MPIDL.h"
 
-MPID::MPID(float *set, float *act, float *adj,boolean *intToggle,float *p, float *i, float *d,float *n,float *delta,float iLim,float lim){
+MPID::MPID(float *set, float *act, float *adj,boolean *intToggle,float *p, float *i, float *d,float *n,const float *delta,float iLim,float lim){
   setPoint = set;
   actual = act;
   adjustment = adj;
@@ -33,10 +33,10 @@ void MPID::calculate(){
     iError = integralLimitLow;
   }
   //uncomment these lines to switch from PI to PID controller 
-  //dError = dErrorPrev - *fc * *dt * dErrorPrev + *kd * *fc * (error - prevError);
+  dError = dErrorPrev - *fc * *dt * dErrorPrev + *kd * *fc * (error - prevError);
 
-  //*adjustment = *kp * error  + iError +  dError;
-  *adjustment = *kp * error  + iError;
+  *adjustment = *kp * error  + iError +  dError;
+  //*adjustment = *kp * error  + iError;
 
   if (*adjustment > outputLimitHigh){
     *adjustment  = outputLimitHigh;

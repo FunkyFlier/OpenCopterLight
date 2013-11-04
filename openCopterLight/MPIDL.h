@@ -5,14 +5,14 @@
 
 class MPID{
 public:
-  MPID(float*, float*, float*,boolean*,float*, float*, float*, float*,float*,float,float);
+  MPID(float*, float*, float*,boolean*,float*, float*, float*, float*,const float*,float,float);
   void calculate();
   void reset();
   float integralLimitHigh;
   float integralLimitLow;
   float outputLimitHigh;
   float outputLimitLow;
-  float *dt;
+  const float *dt;
   float *setPoint;
   float *actual;
   float *adjustment;

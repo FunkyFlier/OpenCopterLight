@@ -47,7 +47,7 @@
 #define HEX_ZERO 0x00
 
 //motor defines
-#define FREQ 400
+#define FREQ 190
 #define PRESCALE 8
 #define PERIOD ((F_CPU/PRESCALE/FREQ) - 1)
 #define Motor1WriteMicros(x) OCR3A = x * 2

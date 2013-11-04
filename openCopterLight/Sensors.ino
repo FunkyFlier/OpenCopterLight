@@ -21,7 +21,7 @@ void GetCalibrationValues(){
 
 void AccInit(){
   //set up the accelerometer
-  I2c.write(ADXL345_ADDR,BW_RATE,0x0C);//400Hz update
+  I2c.write(ADXL345_ADDR,BW_RATE,0x0B);
   delay(10);
   I2c.write(ADXL345_ADDR,POWER_CTL,0x08);//start measurment
   delay(10);
@@ -49,7 +49,7 @@ void GyroInit(){
   delay(10);
   I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG5,0x02);
   delay(10);
-  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0xCF);
+  I2c.write(L3GD20_ADDRESS,L3G_CTRL_REG1,0x4F);
   delay(10);
   //take a number of samples to find the gyro's zero rate offset
   offsetX = 0;

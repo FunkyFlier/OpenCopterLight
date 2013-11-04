@@ -82,6 +82,7 @@ openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *a
 
   beta1 = betaDef1;
 
+
   q0 = 1;
   q1 = 0;
   q2 = 0;
@@ -198,7 +199,9 @@ void openIMU::InitialQuat(){
 }
 
 void openIMU::IMUupdate() {
-  //this function handles pitch and roll
+
+
+   //this function handles pitch and roll
 
   // Rate of change of quaternion from gyroscope
   qDot1 = 0.5f * (-q1 * *gx - q2 * *gy - q3 * *gz);

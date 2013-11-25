@@ -130,30 +130,30 @@ float adjustmentX;
 float adjustmentY;
 float adjustmentZ; 
 
-float kp_r_p = 0.75;
-float ki_r_p = 5.281690141;
-float kd_r_p = 0.026625;
-float nPitch = 50;
+float kp_r_p = 0.4125;
+float ki_r_p = 2.9049296;
+float kd_r_p = 0.03905;
+float nPitch = 50.0;
 
-float kp_r_r = 0.75;
-float ki_r_r = 5.281690141;
-float kd_r_r = 0.026625;
-float nRoll = 50;
+float kp_r_r = 0.4125;
+float ki_r_r = 2.9049296;
+float kd_r_r = 0.03905;
+float nRoll = 50.0;
 
-float kp_r_y = 2;
-float ki_r_y = 0.75;
-float kd_r_y = 0.05;
-float nYaw = 35;
+float kp_r_y = 2.25;
+float ki_r_y = 0.25;
+float kd_r_y = 0.01;
+float nYaw = 50.0;
 
-float kp_a_p = 3.5;
+float kp_a_p = 5.35;
 float ki_a_p = 0;
-float kd_a_p = 0.01;
-float nPitchA = 50;
+float kd_a_p = 0.075;
+float nPitchA = 75;
 
-float kp_a_r = 3.5;
+float kp_a_r = 5.35;
 float ki_a_r = 0;
-float kd_a_r = 0.01;
-float nRollA = 50;
+float kd_a_r = 0.075;
+float nRollA = 75;
 
 /*float kp_r_p = 0.60;
 float ki_r_p = 0.05;
@@ -218,17 +218,7 @@ void setup(){
   digitalWrite(RED,HIGH);
   GetCalibrationValues();
   MotorInit();//start the motor signals
-  //DetectRC();
-  rcType = RC;
-  if (rcType == RC){
-    DDRB &= 0xE0;
-    PORTB |= 0x1F;
-    PCMSK0 |= 0x1F;
-    PCICR |= 1<<0;
-    delay(100);//wait for a few frames
-    Center();
-  } 
-  Serial1.begin(115200);
+  DetectRC();
   
   Arm();//move the rudder to the right to begin calibration
   I2c.begin();

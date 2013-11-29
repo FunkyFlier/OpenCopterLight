@@ -242,8 +242,9 @@ void loop(){
     RCFailSafeCounter = 0;
 
   }  
-  /*if ((millis() - printTimer >= 50) && rcCommands.values.throttle > 1100){
+  /*if ((millis() - printTimer >= 50) ){
     printTimer = millis();
+    Serial<<rollSetPoint<<","<<pitchSetPoint<<","<<rateSetPointZ<<"\r\n";
   }*/
 
   if (RCFailSafeCounter >= 190 || failSafe == true ){

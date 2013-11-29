@@ -155,31 +155,6 @@ float ki_a_r = 0;
 float kd_a_r = 0.075;
 float nRollA = 75;
 
-/*float kp_r_p = 0.60;
-float ki_r_p = 0.05;
-float kd_r_p = 0.01;
-float nPitch = 5;
-
-float kp_r_r = 0.60;
-float ki_r_r = 0.05;
-float kd_r_r = 0.01;
-float nRoll = 5;
-
-
-float kp_r_y = 2.5;
-float ki_r_y = 0.5;
-float kd_r_y = 0.05;
-float nYaw = 5;
-
-float kp_a_p = 4.25;
-float ki_a_p = 0.1;
-float kd_a_p = 0.01;
-float nPitchA = 5;
-
-float kp_a_r = 4.25;
-float ki_a_r = 0.1;
-float kd_a_r = 0.01;
-float nRollA = 5;*/
 
 //general purpose index variables
 uint16_t i;
@@ -265,15 +240,11 @@ void loop(){
     newRC = false;
     ProcessChannels();
     RCFailSafeCounter = 0;
-    //Serial1<<millis()<<","<<rollSetPoint<<","<<imu.roll<<","<<rateSetPointX<<","<<degreeGyroX<<"\r\n";
-    //Serial1<<millis()<<","<<rateSetPointX<<","<<degreeGyroX<<"\r\n";
-    //Serial<<imu.pitch<<","<<imu.roll<<"\r\n";
+
   }  
-  if ((millis() - printTimer >= 50) && rcCommands.values.throttle > 1100){
+  /*if ((millis() - printTimer >= 50) && rcCommands.values.throttle > 1100){
     printTimer = millis();
-    Serial1<<printTimer<<","<<rollSetPoint<<","<<imu.roll<<","<<rateSetPointX<<","<<degreeGyroX<<"\r\n";
-    //Serial<<degreeGyroX<<","<<degreeGyroY<<","<<degreeGyroZ<<"\r\n";
-  }
+  }*/
 
   if (RCFailSafeCounter >= 190 || failSafe == true ){
     TIMSK4 = (0<<OCIE4A);
